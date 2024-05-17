@@ -109,11 +109,22 @@ int main(void) {
 		// Cria uma nova imagem IVC
 		IVC * image = vc_image_new(video.width, video.height, 3, 255);
 		// Copia dados de imagem da estrutura cv::Mat para uma estrutura IVC
+
 		memcpy(image->data, frame.data, video.width * video.height * 3);
+
+		IVC* image1 = vc_image_new(video.width, video.height, 3, 255);
+
 		// Executa uma fun��o da nossa biblioteca vc
 
+		vc_convert_bgr_to_rgb(image);
+		vc_rgb_to_hsv(image, image1);
+
 		// Liberta a mem�ria da imagem IVC que havia sido criada
+
+		memcpy(frame.data, image1->data, video.width * video.height * 3);
+
 		vc_image_free(image);
+		vc_image_free(image1);
 
 
 		/* Exibe a frame */

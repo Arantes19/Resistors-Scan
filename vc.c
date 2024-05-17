@@ -673,6 +673,33 @@ int vc_rgb_to_hsv(IVC* src, IVC* dst)
 
     return 1;
 }
+
+IVC* vc_convert_bgr_to_rgb(IVC* src)
+{
+    unsigned char* datadst = src->data;
+    int width = src->width;
+    int height = src->height;
+    int bytesperline = src->bytesperline;
+    int channels = src->channels;
+
+    //Verificacao de erros
+    if ((width <= 0) || (height <= 0) || (datadst == NULL)) return 0;
+    if (channels != 3) return 0;
+    //Verifica se existe blobs
+
+    for (int y = 0; y < height; y++)
+    {
+        for (int x = 0; x < width; x++)
+        {
+            int pos = y * bytesperline + x * channels;
+            unsigned char aux = datadst[pos];
+            datadst[pos] = datadst[pos + 2];
+            datadst[pos + 2] = aux;
+        }
+    }
+    return src;
+}
+
 int vc_rgb_to_hsv2(IVC* srcdst)
 {
     unsigned char* data = (unsigned char*)srcdst->data;
