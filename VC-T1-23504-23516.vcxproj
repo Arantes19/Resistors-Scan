@@ -26,7 +26,7 @@
     <ClInclude Include="vc.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\..\..\Downloads\video.avi" />
+    <Media Include="video_resistors.mp4" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

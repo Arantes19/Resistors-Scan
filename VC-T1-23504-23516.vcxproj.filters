@@ -28,8 +28,8 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\..\..\Downloads\video.avi">
+    <Media Include="video_resistors.mp4">
       <Filter>Source Files</Filter>
-    </None>
+    </Media>
   </ItemGroup>
 </Project>
