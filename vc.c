@@ -1788,3 +1788,11 @@ OVC* vc_get_biggest_blob(OVC* blobs, int nblobs)
     }
     return ovc_to_return;
 }
+
+IVC *ONE_CHANNEL_VISUALIZER(IVC *src_image)
+{
+    IVC *one_channel_image = vc_image_new(src_image->width, src_image->height, 3, 255);
+    vc_gray_3channels(src_image, one_channel_image); 
+
+    return one_channel_image;
+}

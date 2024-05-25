@@ -86,7 +86,7 @@ int main(void) {
 		/* Verifica se conseguiu ler a frame */
 		if (frame.empty()) break;
 
-		cv::GaussianBlur(frame, frame, cv::Size(5, 5), 0);
+		//cv::GaussianBlur(frame, frame, cv::Size(5, 5), 0);
 
 		/* N�mero da frame a processar */
 		video.nframe = (int)capture.get(cv::CAP_PROP_POS_FRAMES);
@@ -107,58 +107,28 @@ int main(void) {
 
 		//Criação de imagens
 		IVC *image0 = vc_image_new(video.width, video.height, 3, 255);
-		IVC *image2 = vc_image_new(video.width, video.height, 3, 255);
-	
-		IVC *image4 = vc_image_new(video.width, video.height, 1, 255);
+
 
 		//Copia dados de imagem da estrutura cv::Mat para uma estrutura IVC
 		memcpy(image0->data, frame.data, video.width * video.height * 3);
 		vc_convert_bgr_to_rgb(image0);
 
-		IVC* image1 = vc_image_new(video.width, video.height, 3, 255);
+		IVC *image1 = vc_image_new(video.width, video.height, 3, 255);
 		vc_rgb_to_hsv(image0, image1);
 
-		IVC* green = vc_image_new(video.width, video.height, 1, 255);
-		vc_hsv_segmentation(image1, green, 65, 115, 25, 50, 35, 60);
+		IVC *image2 = vc_image_new(video.width, video.height, 1, 255); 
+		vc_hsv_segmentation(image1, image2, 30, 45, 45, 65, 50, 90);
+		 
+		IVC *dilateImages = vc_image_new(video.width, video.height, 1, 255);
+		vc_binary_close(image2, dilateImages, 9, 9);
 
-		//Isto serve como uma segunda "frame" para comparar o video original com a cor segmentada
-		//cv::Mat green_mat(video.height, video.width, CV_8UC1, green->data); 
-		//cv::imshow("Mask", green_mat); 
-			
-		IVC* image3 = vc_image_new(video.width, video.height, 1, 255);
-		vc_binary_close(green, image3, 5, 5);
-		
-		/*
-		// Label blobs (faz parte da frame que é criada para verificar a cor segmentada)
-		OVC* blob = nullptr;
-		int nblob = 0;
-		blob = vc_binary_blob_labelling(image4, green, &nblob);
-
-		IVC* mask = vc_image_new(video.width, video.height, 1, 255);
-		for (int y = 0; y < video.height; y++) {
-			for (int x = 0; x < video.width; x++) {
-				int index = y * video.width * green->channels + x * green->channels;
-				mask->data[index] = green->data[index]; 
-			}
-		}
-
-		// Create an OpenCV matrix to display the mask
-		cv::Mat mask_mat(mask->height, mask->width, CV_8UC1, mask->data);
-		// Show the mask in a separate window
-		cv::imshow("Mask", mask_mat);
-		*/
-
-		//vc_gray_3channels(image3, image2);   
-		//memcpy(frame.data, image2->data, video.width * video.height * 3);
+		memcpy(frame.data, ONE_CHANNEL_VISUALIZER(dilateImages)->data, video.width * video.height * 3); 
 
 		//Liberta a memoria das imagens IVC criadas
 		vc_image_free(image0);    
 		vc_image_free(image1); 
-		vc_image_free(image2);  
-		vc_image_free(image3); 
-		vc_image_free(image4); 
-		vc_image_free(green); 
-		//vc_image_free(mask);  
+		vc_image_free(image2);
+		vc_image_free(dilateImages);
 
 		/* Exibe a frame */
 		cv::imshow("VC - VIDEO", frame);

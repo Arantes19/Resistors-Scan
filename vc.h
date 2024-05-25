@@ -74,4 +74,5 @@ int vc_draw_boundingbox(IVC* srcdst, OVC* blob);
 OVC* vc_binary_blob_labelling(IVC* src, IVC* dst, int* nlabels);
 int vc_binary_blob_info(IVC* src, OVC* blobs, int nblobs);
 OVC* vc_get_biggest_blob(OVC* blobs, int nblobs);
+IVC* ONE_CHANNEL_VISUALIZER(IVC* src_image);
 //OVC* vc_get_blobs_bigger_than(OVC* blobs, int* nblobs, int area);
