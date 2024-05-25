@@ -700,6 +700,7 @@ IVC* vc_convert_bgr_to_rgb(IVC* src)
     return src;
 }
 
+
 int vc_rgb_to_hsv2(IVC* srcdst)
 {
     unsigned char* data = (unsigned char*)srcdst->data;
@@ -808,42 +809,70 @@ int getMin(int r, int g, int b)
     return valor;
 }
 
-int vc_hsv_segmentation(IVC* srcdst, int hmin, int hmax, int smin, int smax, int vmin, int vmax)
+int vc_hsv_segmentation(IVC* src, IVC* dst, int hmin, int hmax, int smin, int smax, int vmin, int vmax)
 {
-    unsigned char* data = (unsigned char*)srcdst->data;
-    int width = srcdst->width;
-    int height = srcdst->height;
-    int bytesperline = srcdst->bytesperline;
-    int channels = srcdst->channels;
-    int h, s, v; // h=[0, 360] s=[0, 100] v=[0, 100]
-    int i, size;
+    if (src->height < 0 || src->width < 0 || (src->levels < 0 && src->levels>255))
+        return 0;
+    if (src->channels != 3 || dst->channels != 1)
+        return 0;
 
-    // Verificação de erros
-    if ((srcdst->width <= 0) || (srcdst->height <= 0) || (srcdst->data == NULL)) return 0;
-    if (channels != 3) return 0;
+    int x, y;
+    long int possrc, posdst;
 
-    size = width * height * channels;
-
-    for (i = 0; i < size; i = i + channels)
+    for (y = 0; y < src->height; y++)
     {
-        h = (int)(((float)data[i]) / 255.0f * 360.0f);
-        s = (int)(((float)data[i + 1]) / 255.0f * 100.0f);
-        v = (int)(((float)data[i + 2]) / 255.0f * 100.0f);
+        for (x = 0; x < src->width; x++)
+        {
+            possrc = y * src->bytesperline + x * src->channels;
+            posdst = y * dst->bytesperline + x * dst->channels;
 
-        if ((h > hmin) && (h <= hmax) && (s >= smin) && (s <= smax) && (v >= vmin) && (v <= vmax))
-        {
-            data[i] = 255;
-            data[i + 1] = 255;
-            data[i + 2] = 255;
-        }
-        else
-        {
-            data[i] = 0;
-            data[i + 1] = 0;
-            data[i + 2] = 0;
+            if ((src->data[possrc] >= hmin && src->data[possrc] <= hmax) &&
+                (src->data[possrc + 1] >= smin && src->data[possrc + 1] <= smax) &&
+                (src->data[possrc + 2] >= vmin && src->data[possrc + 2] <= vmax))
+            {
+                dst->data[posdst] = 255;
+            }
+            else
+            {
+                dst->data[posdst] = 0;
+            }
         }
     }
 
+    return 1;
+} 
+
+
+int vc_gray_3channels(IVC* src, IVC* dst)
+{
+    unsigned char* datasrc = (unsigned char*)src->data;
+    int bytesperline_src = src->width * src->channels;
+    int channels_src = src->channels;
+    unsigned char* datadst = (unsigned char*)dst->data;
+    int bytesperline_dst = dst->width * dst->channels;
+    int channels_dst = dst->channels;
+    int width = src->width;
+    int height = src->height;
+    int x, y;
+    long int pos_src, pos_dst;
+
+    // Verificacao de erros
+    if ((src->width <= 0) || (src->height <= 0) || (src->data == NULL)) return 0;
+    if ((src->width != dst->width) || (src->height != dst->height)) return 0;
+    if ((src->channels != 1) || (dst->channels != 3)) return 0;
+
+    for (y = 0; y < height; y++)
+    {
+        for (x = 0; x < width; x++)
+        {
+            pos_src = y * bytesperline_src + x * channels_src; //Calcular indíce, channels_src = 1
+            pos_dst = y * bytesperline_dst + x * channels_dst; // channels_dst = 3
+
+            datadst[pos_dst] = datasrc[pos_src];
+            datadst[pos_dst + 1] = datasrc[pos_src];
+            datadst[pos_dst + 2] = datasrc[pos_src];
+        }
+    }
     return 1;
 }
 
@@ -1154,6 +1183,40 @@ int vc_binary_erode(IVC* src, IVC* dst, int kernel_size)
             }
         }
     }
+}
+
+int vc_binary_open(IVC* src, IVC* dst, int kernelerode, int kerneldilate)
+{
+    IVC* temp;
+    temp = vc_image_new(src->width, src->height, 1, 255); // Creates an empty image with the resolution of the src image
+    if (temp == NULL)
+    {
+        printf("ERROR -> vc_image_new():\n\tOut of memory!\n");
+        return 0;
+    }
+    vc_binary_erode(src, temp, kernelerode);
+    vc_binary_dilate(temp, dst, kerneldilate);
+
+    vc_image_free(temp);
+
+    return 1;
+}
+
+int vc_binary_close(IVC* src, IVC* dst, int kerneldilate, int kernelerode)
+{
+    IVC* temp;
+    temp = vc_image_new(src->width, src->height, 1, 255); // Creates an empty image with the resolution of the src image
+    if (temp == NULL)
+    {
+        printf("ERROR -> vc_image_new():\n\tOut of memory!\n");
+        return 0;
+    }
+    vc_binary_dilate(src, temp, kerneldilate);
+    vc_binary_erode(temp, dst, kernelerode);
+
+    vc_image_free(temp);
+
+    return 1;
 }
 
 
