@@ -16,6 +16,9 @@
 #include <malloc.h>
 #include "vc.h"
 
+#define MAX3(r, g, b) (r > g ? (r > b ? r : b) : (g > b ? g : b)) 
+#define MIN3(r, g, b) (r < g ? (r < b ? r : b) : (g < b ? g : b)) 
+
 #define MAX(a, b) (a > b ? a : b)
 #define MIN(a, b) (a < b ? a : b)
 
@@ -601,77 +604,59 @@ int vc_rgb_to_gray(IVC* src, IVC* dst)
     return 1;
 }
 
-int vc_rgb_to_hsv(IVC* src, IVC* dst)
+int vc_rgb_to_hsv(IVC  *src, IVC *dst) 
 {
-    unsigned char* datasrc = (unsigned char*)src->data;
-    int bytesperline_src = src->width * src->channels;
-    int channels_src = src->channels;
-    unsigned char* datadst = (unsigned char*)dst->data;
-    int bytesperline_dst = dst->width * dst->channels;
-    int channels_dst = dst->channels;
-    int width = src->width;
-    int height = src->height;
-    int x, y;
-    long int pos_src, pos_dst;
-    float rf, gf, bf, Max, Min, H = 0, S = 0, V = 0;
-
-    // Verifica��o de erros
-    if ((src->width <= 0) || (src->height <= 0) || (src->data == NULL))
+    if (src->height < 0 || src->width < 0 || (src->levels < 0 && src->levels > 255))
+        return 0;
+    if (src->channels != 3 || dst->channels != 3)
         return 0;
 
-    if ((dst->width <= 0) || (dst->height <= 0) || (dst->data == NULL))
-        return 0;
+    int x, y; 
+    float matiz, sat, valor, max, min, r, g, b;
+    long int possrc, posdst;
 
-    if ((src->channels != 3))
-        return 0;
-
-    //
-    for (y = 0; y < height; y++)
+    for (x = 0; x < src->width; x++)
     {
-        for (x = 0; x < width; x++)
+        for (y = 0; y < src->height; y++)
         {
+            possrc = y * src->bytesperline + x * src->channels;
+            posdst = y * dst->bytesperline + x * dst->channels;
 
-            pos_src = (y * bytesperline_src) + (x * channels_src);
-            pos_dst = (y * bytesperline_dst) + (x * channels_dst);
+            max = min = src->data[possrc];
 
-            rf = (float)datasrc[pos_src];
-            gf = (float)datasrc[pos_src + 1];
-            bf = (float)datasrc[pos_src + 2];
+            r = src->data[possrc];
+            g = src->data[possrc + 1];
+            b = src->data[possrc + 2];
+            max = MAX3(r, g, b);
+            min = MIN3(r, g, b);
 
-            Max = getMax(rf, gf, bf);
-            Min = getMin(rf, gf, bf);
+            valor = max;
+            if (valor > 0 && (max - min) > 0)
+                sat = 255.0f * (max - min) / valor;
+            else
+                sat = 0;
 
-            V = Max;
-            if (Max - Min == 0 || V == 0)
-            {
-                S = 0;
-            }
+            if (sat == 0)
+                matiz = 0;
             else
             {
-                S = (Max - Min) / V;
-            }
-
-            if (rf == Max)
-            {
-                if (gf >= bf)
-                    H = 60 * (gf - bf) / (Max - Min);
+                if ((max == src->data[possrc]) && (src->data[possrc + 1] > src->data[possrc + 2]))
+                    matiz = 60 * (src->data[possrc + 1] - src->data[possrc + 2]) / (max - min);
+                else if (max == src->data[possrc] && src->data[possrc + 2] > src->data[possrc + 1])
+                    matiz = 360 + 60 * (src->data[possrc + 1] - src->data[possrc + 2]) / (max - min);
+                else if (max == src->data[possrc + 1])
+                    matiz = 120 + 60 * (src->data[possrc + 2] - src->data[possrc]) / (max - min);
+                else if (max == src->data[possrc + 2])
+                    matiz = 240 + 60 * (src->data[possrc] - src->data[possrc + 1]) / (max - min);
                 else
-                    H = 360 + 60 * (gf - bf) / (Max - Min);
+                    matiz = 0;
             }
-            else if (gf == Max)
-                H = 120 + 60 * (bf - rf) / (Max - Min);
-            else if (bf == Max)
-                H = 240 + 60 * (bf - rf) / (Max - Min);
-
-            H = H * 255 / 360;
-            S = S * 255;
-            datadst[pos_dst] = (unsigned char)(H);
-            datadst[pos_dst + 1] = (unsigned char)(S);
-            datadst[pos_dst + 2] = (unsigned char)(V);
+            dst->data[posdst] = (int)(matiz * 255.0f) / 360;
+            dst->data[posdst + 1] = (int)sat;
+            dst->data[posdst + 2] = (int)valor;
         }
     }
-
-    return 1;
+    return 0;
 }
 
 IVC* vc_convert_bgr_to_rgb(IVC* src)
@@ -809,37 +794,53 @@ int getMin(int r, int g, int b)
     return valor;
 }
 
-int vc_hsv_segmentation(IVC* src, IVC* dst, int hmin, int hmax, int smin, int smax, int vmin, int vmax)
+int vc_hsv_segmentation(IVC *src, IVC *dst, int hmin, int hmax, int smin, int smax, int vmin, int vmax)
 {
-    if (src->height < 0 || src->width < 0 || (src->levels < 0 && src->levels>255))
+    unsigned char* datasrc = (unsigned char*)src->data;
+    int byterperline_src = src->width * src->channels;
+    int channels_src = src->channels;
+    unsigned char* datadst = (unsigned char*)dst->data;
+    int bytesperline_dst = dst->width * dst->channels;
+    int channels_dst = dst->channels;
+    int width = src->width;
+    int height = src->height;
+    int x, y;
+    long int pos_src, pos_dst;
+    float h, s, v;
+
+    if (src->width <= 0 || src->height <= 0 || src->data == NULL)
+        return 0;
+    if (src->width != dst->width || src->height != dst->height)
         return 0;
     if (src->channels != 3 || dst->channels != 1)
         return 0;
 
-    int x, y;
-    long int possrc, posdst;
-
-    for (y = 0; y < src->height; y++)
+    // Segmentation loop
+    for (y = 0; y < height; y++)
     {
-        for (x = 0; x < src->width; x++)
+        for (x = 0; x < width; x++)
         {
-            possrc = y * src->bytesperline + x * src->channels;
-            posdst = y * dst->bytesperline + x * dst->channels;
+            pos_src = y * byterperline_src + x * channels_src;
+            pos_dst = y * bytesperline_dst + x * channels_dst;
 
-            if ((src->data[possrc] >= hmin && src->data[possrc] <= hmax) &&
-                (src->data[possrc + 1] >= smin && src->data[possrc + 1] <= smax) &&
-                (src->data[possrc + 2] >= vmin && src->data[possrc + 2] <= vmax))
+            // Assuming HSV values are stored in src and are normalized [0, 255]
+            h = (int)(((float)datasrc[pos_src]) / 255.0f * 360.0f);
+            s = (int)(((float)datasrc[pos_src + 1]) / 255.0f * 100.0f);
+            v = (int)(((float)datasrc[pos_src + 2]) / 255.0f * 100.0f);
+
+            // Check if the pixel falls within the specified HSV range
+            if (h >= hmin && h <= hmax && s >= smin && s <= smax && v >= vmin && v <= vmax)
             {
-                dst->data[posdst] = 255;
+                datadst[pos_dst] = 255; // Pixel is within range, mark as white
             }
             else
             {
-                dst->data[posdst] = 0;
+                datadst[pos_dst] = 0; // Pixel is outside range, mark as black
             }
         }
     }
 
-    return 1;
+    return 1; // Success
 } 
 
 
@@ -1202,20 +1203,19 @@ int vc_binary_open(IVC* src, IVC* dst, int kernelerode, int kerneldilate)
     return 1;
 }
 
-int vc_binary_close(IVC* src, IVC* dst, int kerneldilate, int kernelerode)
+int vc_binary_close(IVC* src, IVC* dst, int kernelDilate, int kernelErode)
 {
-    IVC* temp;
-    temp = vc_image_new(src->width, src->height, 1, 255); // Creates an empty image with the resolution of the src image
-    if (temp == NULL)
-    {
-        printf("ERROR -> vc_image_new():\n\tOut of memory!\n");
+
+    if (src->height < 0 || src->width < 0 || (src->levels < 0 && src->levels>255))
         return 0;
-    }
-    vc_binary_dilate(src, temp, kerneldilate);
-    vc_binary_erode(temp, dst, kernelerode);
+    if (src->channels != 1 || dst->channels != 1)
+        return 0;
 
-    vc_image_free(temp);
-
+    IVC* tempImage;
+    tempImage = vc_image_new(src->width, src->height, 1, src->levels);
+    vc_binary_dilate(src, tempImage, kernelDilate);
+    vc_binary_erode(tempImage, dst, kernelErode);
+    vc_image_free(tempImage);
     return 1;
 }
 
@@ -1795,4 +1795,33 @@ IVC *ONE_CHANNEL_VISUALIZER(IVC *src_image)
     vc_gray_3channels(src_image, one_channel_image); 
 
     return one_channel_image;
+}
+
+
+int RGB_to_BGR(IVC* src)
+{
+    unsigned char* data = (unsigned char*)src->data;
+    int width = src->width;
+    int height = src->height;
+    int bytesperline = src->bytesperline;
+    int channels = src->channels;
+    int i, size;
+    int pos_src;
+
+    if ((src->width <= 0) || (src->height <= 0) || (src->data == NULL))
+        return 0;
+    if (channels != 3)
+        return 0;
+
+    size = width * height * channels;
+
+    for (i = 0; i < size; i += channels)
+    {
+        pos_src = i;
+        int red = data[pos_src];
+        data[pos_src] = data[pos_src + 2];
+        data[pos_src + 2] = red;
+    }
+
+    return 1;
 }

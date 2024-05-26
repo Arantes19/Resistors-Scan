@@ -32,7 +32,6 @@ void vc_timer(void) {
 	}
 }
 
-
 int main(void) {
 	// V�deo
 	char videofile[20] = "video_resistors.mp4";
@@ -74,6 +73,7 @@ int main(void) {
 
 	/* Cria uma janela para exibir o v�deo */
 	cv::namedWindow("VC - VIDEO", cv::WINDOW_AUTOSIZE);
+	cv::namedWindow("Segmented", cv::WINDOW_AUTOSIZE);
 
 	/* Inicia o timer */
 	vc_timer();
@@ -86,7 +86,7 @@ int main(void) {
 		/* Verifica se conseguiu ler a frame */
 		if (frame.empty()) break;
 
-		//cv::GaussianBlur(frame, frame, cv::Size(5, 5), 0);
+		cv::GaussianBlur(frame, frame, cv::Size(5, 5), 0); 
 
 		/* N�mero da frame a processar */
 		video.nframe = (int)capture.get(cv::CAP_PROP_POS_FRAMES);
@@ -111,6 +111,7 @@ int main(void) {
 
 		//Copia dados de imagem da estrutura cv::Mat para uma estrutura IVC
 		memcpy(image0->data, frame.data, video.width * video.height * 3);
+
 		vc_convert_bgr_to_rgb(image0);
 
 		IVC *image1 = vc_image_new(video.width, video.height, 3, 255);
@@ -118,23 +119,42 @@ int main(void) {
 
 		IVC *image2 = vc_image_new(video.width, video.height, 1, 255); 
 		vc_hsv_segmentation(image1, image2, 30, 45, 45, 65, 50, 90);
-		 
-		IVC *dilateImages = vc_image_new(video.width, video.height, 1, 255);
-		vc_binary_close(image2, dilateImages, 9, 9);
 
-		memcpy(frame.data, ONE_CHANNEL_VISUALIZER(dilateImages)->data, video.width * video.height * 3); 
+
+		//OVC* blobs = nullptr; 
+		//int nblobs = 0; 
+		//int labels = 0; 
+
+		//IVC* resistor_labeled = vc_image_new(video.width, video.height, 1, 255); 
+
+		//blobs = vc_binary_blob_labelling(image2, resistor_labeled, &nblobs); 
+		//vc_binary_blob_info(resistor_labeled, blobs, nblobs); 
+
+
+		// Convert the binary image to color for visualization
+		cv::Mat seg_frame(video.height, video.width, CV_8UC1, image2->data);
+		 
+		cv::Mat color_seg_frame;
+		cv::cvtColor(seg_frame, color_seg_frame, cv::COLOR_GRAY2BGR); 
+
+
+		RGB_to_BGR(image0);  
+		memcpy(frame.data, image0->data, video.width * video.height * 3); 
 
 		//Liberta a memoria das imagens IVC criadas
 		vc_image_free(image0);    
 		vc_image_free(image1); 
 		vc_image_free(image2);
-		vc_image_free(dilateImages);
+		//vc_image_free(resistor_labeled); 
+		//free(blobs); 
 
-		/* Exibe a frame */
+		// Exibe a frame original
 		cv::imshow("VC - VIDEO", frame);
 
+		// Exibe a frame segmentada
+		cv::imshow("Segmented", color_seg_frame);
+		
 		//int delay = 500 / video.fps;
-
 		/* Sai da aplicacao, se o utilizador premir a tecla 'q' */
 		key = cv::waitKey(1);
 	}
@@ -142,8 +162,9 @@ int main(void) {
 	/* Para o timer e exibe o tempo decorrido */
 	vc_timer();
 
-	/* Fecha a janela */
+	// Fecha as janelas
 	cv::destroyWindow("VC - VIDEO");
+	cv::destroyWindow("Segmented");
 
 	/* Fecha o ficheiro de v�deo */
 	capture.release();

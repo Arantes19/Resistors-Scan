@@ -63,7 +63,7 @@ int vc_gray_to_binary_midpoint(IVC* src, IVC* dst, int kernel_size);
 int vc_binary_dilate(IVC* src, IVC* dst, int kernel);
 int vc_binary_erode(IVC* src, IVC* dst, int kernel);
 int vc_binary_open(IVC* src, IVC* dst, int kernelerode, int kerneldilate);
-int vc_binary_close(IVC* src, IVC* dst, int kerneldilate, int kernelerode);
+int vc_binary_close(IVC* src, IVC* dst, int kernelDilate, int kernelErode);
 
 int vc_binary_blob_labelling_2(IVC* src, IVC* dst);
 int get_lowest_label(int labels[4]);
@@ -75,4 +75,5 @@ OVC* vc_binary_blob_labelling(IVC* src, IVC* dst, int* nlabels);
 int vc_binary_blob_info(IVC* src, OVC* blobs, int nblobs);
 OVC* vc_get_biggest_blob(OVC* blobs, int nblobs);
 IVC* ONE_CHANNEL_VISUALIZER(IVC* src_image);
+int RGB_to_BGR(IVC* src);
 //OVC* vc_get_blobs_bigger_than(OVC* blobs, int* nblobs, int area);
