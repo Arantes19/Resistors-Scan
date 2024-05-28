@@ -1854,54 +1854,6 @@ int DRAW_RESISTOR_BOX_1(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
     int max_y = 0;
 
     
-        /*
-        for (i = 0; i < labels; i++)
-        {
-            if (blobs[i].x < min_x) min_x = blobs[i].x;
-            if (blobs[i].y < min_y) min_y = blobs[i].y;
-            if (blobs[i].x + blobs[i].width > max_x) max_x = blobs[i].x + blobs[i].width;
-            if (blobs[i].y + blobs[i].height > max_y) max_y = blobs[i].y + blobs[i].height;
-
-
-
-            if (blobs[i].y <= height / 2)
-            {
-                // Desenha a caixa delimitadora ao redor de todos os blobs
-                for (int y = min_y; y < max_y; y++)
-                {
-                    for (int x = min_x; x < max_x; x++)
-                    {
-                        int pos_dst = y * dst->bytesperline + x * dst->channels;
-
-                        if (x == min_x || x == max_x - 1 || y == min_y || y == max_y - 1)
-                        {
-                            dst->data[pos_dst] = 255; // Vermelho para a caixa
-                            dst->data[pos_dst + 1] = 0;
-                            dst->data[pos_dst + 2] = 0;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                // Desenha a caixa delimitadora ao redor de todos os blobs
-                for (int y = min_y; y < max_y; y++)
-                {
-                    for (int x = min_x; x < max_x; x++)
-                    {
-                        int pos_dst = y * dst->bytesperline + x * dst->channels;
-
-                        if (x == min_x || x == max_x - 1 || y == min_y || y == max_y - 1)
-                        {
-                            dst->data[pos_dst] = 0; // Vermelho para a caixa
-                            dst->data[pos_dst + 1] = 0;
-                            dst->data[pos_dst + 2] = 0;
-                        }
-                    }
-                }
-            }
-        }
-        */
         for (int i = 0; i < labels; i++)
         {
             if (blobs[i].y <= height * 0.3) {
@@ -1931,42 +1883,7 @@ int DRAW_RESISTOR_BOX_1(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
             }
         }
         
-       /*
-        // Encontra os limites mínimos e máximos dos blobs
-        for (int i = 0; i < labels; i++)
-        {
-            if (blobs[i].y >= height / 2) {
-                
-                if (blobs[i].x < min_x) min_x = blobs[i].x;
-                if (blobs[i].y < min_y) min_y = blobs[i].y;
-                if (blobs[i].x + blobs[i].width > max_x) max_x = blobs[i].x + blobs[i].width;
-                if (blobs[i].y + blobs[i].height > max_y) max_y = blobs[i].y + blobs[i].height;
-        
 
-            }
-        }
-
-        
-
-        // Desenha a caixa delimitadora ao redor de todos os blobs
-        for (int y = min_y; y < max_y; y++)
-        {
-            for (int x = min_x; x < max_x; x++)
-            {
-                int pos_dst = y * dst->bytesperline + x * dst->channels;
-
-                if (x == min_x || x == max_x - 1 || y == min_y || y == max_y - 1)
-                {
-                    dst->data[pos_dst] = 255; // Vermelho para a caixa
-                    dst->data[pos_dst + 1] = 0;
-                    dst->data[pos_dst + 2] = 0;
-                }
-            }
-        }
-    }
-    
-    */
-   
     return 1;
 }
 
@@ -1996,58 +1913,9 @@ int DRAW_RESISTOR_BOX_2(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
     int max_x = 0;
     int max_y = 0;
 
-
-    /*
-    for (i = 0; i < labels; i++)
-    {
-        if (blobs[i].x < min_x) min_x = blobs[i].x;
-        if (blobs[i].y < min_y) min_y = blobs[i].y;
-        if (blobs[i].x + blobs[i].width > max_x) max_x = blobs[i].x + blobs[i].width;
-        if (blobs[i].y + blobs[i].height > max_y) max_y = blobs[i].y + blobs[i].height;
-
-
-
-        if (blobs[i].y <= height / 2)
-        {
-            // Desenha a caixa delimitadora ao redor de todos os blobs
-            for (int y = min_y; y < max_y; y++)
-            {
-                for (int x = min_x; x < max_x; x++)
-                {
-                    int pos_dst = y * dst->bytesperline + x * dst->channels;
-
-                    if (x == min_x || x == max_x - 1 || y == min_y || y == max_y - 1)
-                    {
-                        dst->data[pos_dst] = 255; // Vermelho para a caixa
-                        dst->data[pos_dst + 1] = 0;
-                        dst->data[pos_dst + 2] = 0;
-                    }
-                }
-            }
-        }
-        else
-        {
-            // Desenha a caixa delimitadora ao redor de todos os blobs
-            for (int y = min_y; y < max_y; y++)
-            {
-                for (int x = min_x; x < max_x; x++)
-                {
-                    int pos_dst = y * dst->bytesperline + x * dst->channels;
-
-                    if (x == min_x || x == max_x - 1 || y == min_y || y == max_y - 1)
-                    {
-                        dst->data[pos_dst] = 0; // Vermelho para a caixa
-                        dst->data[pos_dst + 1] = 0;
-                        dst->data[pos_dst + 2] = 0;
-                    }
-                }
-            }
-        }
-    }
-    */
     for (int i = 0; i < labels; i++)
     {
-        if (blobs[i].y > height * 0.3) {
+        if ((blobs[i].y >= height * 0.3) && ( blobs[i].y <= height * 0.65)) {
 
             if (blobs[i].x < min_x) min_x = blobs[i].x;
             if (blobs[i].y < min_y) min_y = blobs[i].y;
@@ -2074,41 +1942,64 @@ int DRAW_RESISTOR_BOX_2(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
         }
     }
 
-    /*
-     // Encontra os limites mínimos e máximos dos blobs
-     for (int i = 0; i < labels; i++)
-     {
-         if (blobs[i].y >= height / 2) {
 
-             if (blobs[i].x < min_x) min_x = blobs[i].x;
-             if (blobs[i].y < min_y) min_y = blobs[i].y;
-             if (blobs[i].x + blobs[i].width > max_x) max_x = blobs[i].x + blobs[i].width;
-             if (blobs[i].y + blobs[i].height > max_y) max_y = blobs[i].y + blobs[i].height;
+    return 1;
+}
+
+int DRAW_RESISTOR_BOX_3(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height)
+{
+    unsigned char* data = (unsigned char*)src->data;
+    int width = src->width;
+    int height = src->height;
+    int bytesperline = src->bytesperline;
+    int channels = src->channels;
+    int x, y, i;
+    long int pos;
+    int xmin, ymin, xmax, ymax;
+    long int sumx, sumy;
+
+    // Verificação de erros
+    if ((src->width <= 0) || (src->height <= 0) || (src->data == NULL)) return 0;
+    if (channels != 1) return 0;
+
+    if (labels <= 0 || blobs == NULL)
+        return 0;
+
+    // Inicializa os limites mínimos e máximos
+    int min_x = src->width;
+    int min_y = src->height;
+    int max_x = 0;
+    int max_y = 0;
+
+    for (int i = 0; i < labels; i++)
+    {
+        if (blobs[i].y >= height * 0.65) {
+
+            if (blobs[i].x < min_x) min_x = blobs[i].x;
+            if (blobs[i].y < min_y) min_y = blobs[i].y;
+            if (blobs[i].x + blobs[i].width > max_x) max_x = blobs[i].x + blobs[i].width;
+            if (blobs[i].y + blobs[i].height > max_y) max_y = blobs[i].y + blobs[i].height;
 
 
-         }
-     }
+        }
+    }
 
+    // Desenha a caixa delimitadora ao redor de todos os blobs
+    for (int y = min_y; y < max_y; y++)
+    {
+        for (int x = min_x; x < max_x; x++)
+        {
+            int pos_dst = y * dst->bytesperline + x * dst->channels;
 
+            if (x == min_x || x == max_x - 1 || y == min_y || y == max_y - 1)
+            {
+                dst->data[pos_dst] = 255;
+                dst->data[pos_dst + 1] = 255;
+                dst->data[pos_dst + 2] = 255;
+            }
+        }
+    }
 
-     // Desenha a caixa delimitadora ao redor de todos os blobs
-     for (int y = min_y; y < max_y; y++)
-     {
-         for (int x = min_x; x < max_x; x++)
-         {
-             int pos_dst = y * dst->bytesperline + x * dst->channels;
-
-             if (x == min_x || x == max_x - 1 || y == min_y || y == max_y - 1)
-             {
-                 dst->data[pos_dst] = 255; // Vermelho para a caixa
-                 dst->data[pos_dst + 1] = 0;
-                 dst->data[pos_dst + 2] = 0;
-             }
-         }
-     }
- }
-
- */
 
     return 1;
 }

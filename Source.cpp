@@ -137,8 +137,12 @@ int main(void) {
 
 		vc_binary_blob_info(image3, blobs, nblobs);
 
-		DRAW_RESISTOR_BOX_1(image3, image0, blobs, nblobs, video.width, video.height);
-		DRAW_RESISTOR_BOX_2(image3, image0, blobs, nblobs, video.width, video.height);
+		/*Foram realizados 2 desenhos de maneira a evitar a criação de um border entre 2 resistencias*/
+
+		DRAW_RESISTOR_BOX_1(image3, image0, blobs, nblobs, video.width, video.height);//Parte de cima da imagem, <=30% da Height
+		DRAW_RESISTOR_BOX_2(image3, image0, blobs, nblobs, video.width, video.height);//Parte do meio da imagem, [30,70[% da Height
+		DRAW_RESISTOR_BOX_3(image3, image0, blobs, nblobs, video.width, video.height);//Parte de baixo da imagem, >=70% da Height
+
 
 
 
