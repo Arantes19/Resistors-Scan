@@ -1830,33 +1830,36 @@ int RGB_to_BGR(IVC* src)
 // Função para desenhar a bounding box do resistor
 int DRAW_RESISTOR_BOX_1(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height)
 {
-    unsigned char* data = (unsigned char*)src->data;
-    int width = src->width;
-    int height = src->height;
-    int bytesperline = src->bytesperline;
-    int channels = src->channels;
+    unsigned char* datasrc = (unsigned char*)src->data;
+    unsigned char* datadst = (unsigned char*)dst->data;
+    int width_src = src->width;
+    int height_src = src->height;
+    int bytesperline_dst = dst->bytesperline;
+    int channels_src = src->channels;
+    int channels_dst = dst->channels;
     int x, y, i;
-    long int pos;
+    long int pos_dst, pos_1, pos_2, pos_3, pos_4, pos_5;
+    int aux_x, aux_y;
     int xmin, ymin, xmax, ymax;
     long int sumx, sumy;
 
     // Verificação de erros
-    if ((src->width <= 0) || (src->height <= 0) || (src->data == NULL)) return 0;
-    if (channels != 1) return 0;
+    if ((width_src <= 0) || (height_src<= 0) || (datasrc== NULL)) return 0;
+    if (channels_src!= 1) return 0;
 
     if (labels <= 0 || blobs == NULL )
         return 0;
 
     // Inicializa os limites mínimos e máximos
-    int min_x = src->width;
-    int min_y = src->height;
+    int min_x = width_src;
+    int min_y = height_src;
     int max_x = 0;
     int max_y = 0;
 
     
         for (int i = 0; i < labels; i++)
         {
-            if (blobs[i].y <= height * 0.3) {
+            if (blobs[i].y <= height_src * 0.3) {
 
                 if (blobs[i].x < min_x) min_x = blobs[i].x;
                 if (blobs[i].y < min_y) min_y = blobs[i].y;
@@ -1872,17 +1875,55 @@ int DRAW_RESISTOR_BOX_1(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
         {
             for (int x = min_x; x < max_x; x++)
             {
-                int pos_dst = y * dst->bytesperline + x * dst->channels;
+                pos_dst = y * bytesperline_dst + x * channels_dst;
 
                 if (x == min_x || x == max_x - 1 || y == min_y || y == max_y - 1)
                 {
-                    dst->data[pos_dst] = 255; // Vermelho para a caixa
-                    dst->data[pos_dst + 1] = 0;
-                    dst->data[pos_dst + 2] = 0;
+                    datadst[pos_dst] = 255; // Vermelho para a caixa
+                    datadst[pos_dst + 1] = 0;
+                    datadst[pos_dst + 2] = 0;
                 }
             }
         }
+
+
+        //Verifica se a Border é valida 
+        if ((min_y < height_src) && (max_y > 0))
+        {
+
+            aux_x = max_x - ((max_x - min_x) / 2);
+            aux_y = max_y - ((max_y - min_y) / 2);
+
+            pos_1 = aux_y * bytesperline_dst + aux_x * channels_dst;
+            pos_2 = (aux_y + 1) * bytesperline_dst + aux_x * channels_dst;
+            pos_3 = aux_y * bytesperline_dst + (aux_x + 1) * channels_dst;
+            pos_4 = (aux_y - 1) * bytesperline_dst + aux_x * channels_dst;
+            pos_5 = aux_y * bytesperline_dst + (aux_x - 1) * channels_dst;
+
         
+            datadst[pos_1] = 255; // Vermelho para a caixa
+            datadst[pos_1 + 1] = 0;
+            datadst[pos_1 + 2] = 0;
+        
+            datadst[pos_2] = 255; // Vermelho para a caixa
+            datadst[pos_2 + 1] = 0;
+            datadst[pos_2 + 2] = 0;
+        
+            datadst[pos_3] = 255; // Vermelho para a caixa
+            datadst[pos_3 + 1] = 0;
+            datadst[pos_3 + 2] = 0;
+        
+            datadst[pos_4] = 255; // Vermelho para a caixa
+            datadst[pos_4 + 1] = 0;
+            datadst[pos_4 + 2] = 0;
+
+            datadst[pos_5] = 255; // Vermelho para a caixa
+            datadst[pos_5 + 1] = 0;
+            datadst[pos_5 + 2] = 0;
+
+        }
+        
+
 
     return 1;
 }
@@ -1890,115 +1931,197 @@ int DRAW_RESISTOR_BOX_1(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
 // Função para desenhar a bounding box do resistor
 int DRAW_RESISTOR_BOX_2(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height)
 {
-    unsigned char* data = (unsigned char*)src->data;
-    int width = src->width;
-    int height = src->height;
-    int bytesperline = src->bytesperline;
-    int channels = src->channels;
-    int x, y, i;
-    long int pos;
-    int xmin, ymin, xmax, ymax;
-    long int sumx, sumy;
+    unsigned char* datasrc = (unsigned char*)src->data;
+    unsigned char* datadst = (unsigned char*)dst->data;
+    int width_src = src->width;
+    int height_src = src->height;
+    int bytesperline_dst = dst->bytesperline;
+    int channels_src = src->channels;
+    int channels_dst = dst->channels;
+    long int pos_dst, pos_1, pos_2, pos_3, pos_4, pos_5;
+    int aux_x, aux_y;
+    int min_x, min_y, max_x, max_y;
 
-    // Verificação de erros
-    if ((src->width <= 0) || (src->height <= 0) || (src->data == NULL)) return 0;
-    if (channels != 1) return 0;
+    // Error checks
+    if ((width_src <= 0) || (height_src <= 0) || (datasrc == NULL)) return 0;
+    if (channels_src != 1) return 0;
+    if (labels <= 0 || blobs == NULL) return 0;
 
-    if (labels <= 0 || blobs == NULL)
-        return 0;
+    // Initialize the minimum and maximum limits
+    min_x = width_src;
+    min_y = height_src;
+    max_x = 0;
+    max_y = 0;
 
-    // Inicializa os limites mínimos e máximos
-    int min_x = src->width;
-    int min_y = src->height;
-    int max_x = 0;
-    int max_y = 0;
-
+    // Find the bounding box that includes all blobs within the specified y range
     for (int i = 0; i < labels; i++)
     {
-        if ((blobs[i].y >= height * 0.3) && ( blobs[i].y <= height * 0.65)) {
-
+        if ((blobs[i].y >= height_src * 0.3) && (blobs[i].y <= height_src * 0.65))
+        {
             if (blobs[i].x < min_x) min_x = blobs[i].x;
             if (blobs[i].y < min_y) min_y = blobs[i].y;
             if (blobs[i].x + blobs[i].width > max_x) max_x = blobs[i].x + blobs[i].width;
             if (blobs[i].y + blobs[i].height > max_y) max_y = blobs[i].y + blobs[i].height;
-
-
         }
     }
 
-    // Desenha a caixa delimitadora ao redor de todos os blobs
+    // Draw the bounding box around all the blobs
     for (int y = min_y; y < max_y; y++)
     {
         for (int x = min_x; x < max_x; x++)
         {
-            int pos_dst = y * dst->bytesperline + x * dst->channels;
-
+            pos_dst = y * bytesperline_dst + x * channels_dst;
             if (x == min_x || x == max_x - 1 || y == min_y || y == max_y - 1)
             {
-                dst->data[pos_dst] = 0; // Vermelho para a caixa
-                dst->data[pos_dst + 1] = 0;
-                dst->data[pos_dst + 2] = 0;
+                datadst[pos_dst] = 0;       // Red channel
+                datadst[pos_dst + 1] = 0;   // Green channel
+                datadst[pos_dst + 2] = 0;   // Blue channel
             }
         }
     }
 
+    // Draw the center cross only if any blob satisfies the y condition
+    if ((min_y < height_src) && (max_y > 0))
+    {
+        aux_x = min_x + (max_x - min_x) / 2;
+        aux_y = min_y + (max_y - min_y) / 2;
+        
+            pos_1 = aux_y * bytesperline_dst + aux_x * channels_dst;
+            pos_2 = (aux_y + 1) * bytesperline_dst + aux_x * channels_dst;
+            pos_3 = aux_y * bytesperline_dst + (aux_x + 1) * channels_dst;
+            pos_4 = (aux_y - 1) * bytesperline_dst + aux_x * channels_dst;
+            pos_5 = aux_y * bytesperline_dst + (aux_x - 1) * channels_dst;
+
+            datadst[pos_1] = 0;
+            datadst[pos_1 + 1] = 0; 
+            datadst[pos_1 + 2] = 0;
+
+            datadst[pos_2] = 0;
+            datadst[pos_2 + 1] = 0;
+            datadst[pos_2 + 2] = 0; 
+
+            datadst[pos_3] = 0;
+            datadst[pos_3 + 1] = 0;
+            datadst[pos_3 + 2] = 0; 
+                
+            datadst[pos_4] = 0;
+            datadst[pos_4 + 1] = 0;
+            datadst[pos_4 + 2] = 0;
+                
+            datadst[pos_5] = 0;
+            datadst[pos_5 + 1] = 0;
+            datadst[pos_5 + 2] = 0;
+                    
+    }
 
     return 1;
 }
 
-int DRAW_RESISTOR_BOX_3(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height)
+
+int DRAW_RESISTOR_BOX_3(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height, int* count)
 {
-    unsigned char* data = (unsigned char*)src->data;
-    int width = src->width;
-    int height = src->height;
-    int bytesperline = src->bytesperline;
-    int channels = src->channels;
+    unsigned char* datasrc = (unsigned char*)src->data;
+    unsigned char* datadst = (unsigned char*)dst->data;
+    int width_src = src->width;
+    int height_src = src->height;
+    int bytesperline_dst = dst->bytesperline;
+    int channels_src = src->channels;
+    int channels_dst = dst->channels;
     int x, y, i;
-    long int pos;
+    long int pos_dst, pos_1, pos_2, pos_3, pos_4, pos_5;
+    int aux_x, aux_y;
     int xmin, ymin, xmax, ymax;
     long int sumx, sumy;
 
+    int teste=0;
+
     // Verificação de erros
-    if ((src->width <= 0) || (src->height <= 0) || (src->data == NULL)) return 0;
-    if (channels != 1) return 0;
+    if ((width_src <= 0) || (height_src <= 0) || (datasrc == NULL)) return 0;
+    if (channels_src != 1) return 0;
 
     if (labels <= 0 || blobs == NULL)
         return 0;
 
     // Inicializa os limites mínimos e máximos
-    int min_x = src->width;
-    int min_y = src->height;
+    int min_x = width_src;
+    int min_y = height_src;
     int max_x = 0;
     int max_y = 0;
 
     for (int i = 0; i < labels; i++)
     {
-        if (blobs[i].y >= height * 0.65) {
+        if (blobs[i].y >= height_src * 0.65) {
 
             if (blobs[i].x < min_x) min_x = blobs[i].x;
             if (blobs[i].y < min_y) min_y = blobs[i].y;
             if (blobs[i].x + blobs[i].width > max_x) max_x = blobs[i].x + blobs[i].width;
             if (blobs[i].y + blobs[i].height > max_y) max_y = blobs[i].y + blobs[i].height;
-
+            
 
         }
     }
 
+    
+    
+
     // Desenha a caixa delimitadora ao redor de todos os blobs
-    for (int y = min_y; y < max_y; y++)
+    for (y = min_y; y < max_y; y++)
     {
-        for (int x = min_x; x < max_x; x++)
+        for (x = min_x; x < max_x; x++)
         {
-            int pos_dst = y * dst->bytesperline + x * dst->channels;
+            pos_dst = y * bytesperline_dst + x * channels_dst;
 
             if (x == min_x || x == max_x - 1 || y == min_y || y == max_y - 1)
             {
-                dst->data[pos_dst] = 255;
-                dst->data[pos_dst + 1] = 255;
-                dst->data[pos_dst + 2] = 255;
+                datadst[pos_dst] = 255;
+                datadst[pos_dst + 1] = 255;
+                datadst[pos_dst + 2] = 255;
+
             }
         }
+        /*
+        if (min_y == video_height - 10)
+        {
+            (*count)++;
+          // (*count) = (*count)/2642;
+        }
+        */
     }
+
+    if ((min_y < height_src) && (max_y > 0))
+    {
+        aux_x = max_x - ((max_x - min_x) / 2);
+        aux_y = max_y - ((max_y - min_y) / 2);
+
+        pos_1 = aux_y * bytesperline_dst + aux_x * channels_dst;
+        pos_2 = (aux_y + 1) * bytesperline_dst + aux_x * channels_dst;
+        pos_3 = aux_y * bytesperline_dst + (aux_x + 1) * channels_dst;
+        pos_4 = (aux_y - 1) * bytesperline_dst + aux_x * channels_dst;
+        pos_5 = aux_y * bytesperline_dst + (aux_x - 1) * channels_dst;
+
+
+        datadst[pos_1] = 255; // Vermelho para a caixa
+        datadst[pos_1 + 1] = 255;
+        datadst[pos_1 + 2] = 255;
+
+        datadst[pos_2] = 255; // Vermelho para a caixa
+        datadst[pos_2 + 1] = 255;
+        datadst[pos_2 + 2] = 255;
+
+        datadst[pos_3] = 255; // Vermelho para a caixa
+        datadst[pos_3 + 1] = 255;
+        datadst[pos_3 + 2] = 255;
+
+        datadst[pos_4] = 255; // Vermelho para a caixa
+        datadst[pos_4 + 1] = 255;
+        datadst[pos_4 + 2] = 255;
+
+        datadst[pos_5] = 255; // Vermelho para a caixa
+        datadst[pos_5 + 1] = 255;
+        datadst[pos_5 + 2] = 255;
+       
+    }
+
 
 
     return 1;
