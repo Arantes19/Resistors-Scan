@@ -80,7 +80,8 @@ int vc_binary_blob_info(IVC* src, OVC* blobs, int nblobs);
 OVC* vc_get_biggest_blob(OVC* blobs, int nblobs);
 IVC* ONE_CHANNEL_VISUALIZER(IVC* src_image);
 int RGB_to_BGR(IVC* src);
-int DRAW_RESISTOR_BOX(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height);
+int DRAW_RESISTOR_BOX_1(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height);
+int DRAW_RESISTOR_BOX_2(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height);
 
 
 //OVC* vc_get_blobs_bigger_than(OVC* blobs, int* nblobs, int area);

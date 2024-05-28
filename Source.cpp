@@ -43,6 +43,7 @@ int main(void) {
 		int fps;
 		int nframe;
 	} video;
+
 	// Outros
 	std::string str;
 	int key = 0;
@@ -128,12 +129,18 @@ int main(void) {
 		int labels = 0;
 		int count = 0;
 
-		IVC* image3 = vc_image_new(video.width, video.height, 1, 255); 
+		IVC* image3 = vc_image_new(video.width, video.height, 1, 255);
+		IVC* image4 = vc_image_new(video.width, video.height, 1, 255);
+
 
 		blobs = vc_binary_blob_labelling(image2, image3, &nblobs);
-		vc_binary_blob_info(image3, blobs, nblobs); 
 
-		DRAW_RESISTOR_BOX(image3, image0, blobs, nblobs, video.width, video.height);
+		vc_binary_blob_info(image3, blobs, nblobs);
+
+		DRAW_RESISTOR_BOX_1(image3, image0, blobs, nblobs, video.width, video.height);
+		DRAW_RESISTOR_BOX_2(image3, image0, blobs, nblobs, video.width, video.height);
+
+
 
 		// Convert the binary image to color for visualization
 		cv::Mat seg_frame(video.height, video.width, CV_8UC1, image2->data);
@@ -158,6 +165,7 @@ int main(void) {
 		vc_image_free(image1); 
 		vc_image_free(image2);
 		vc_image_free(image3);
+		vc_image_free(image4);
 
 		//vc_image_free(resistor_labeled); 
 		free(blobs); 
