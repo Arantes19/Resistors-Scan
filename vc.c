@@ -1825,3 +1825,51 @@ int RGB_to_BGR(IVC* src)
 
     return 1;
 }
+
+
+// Função para desenhar a bounding box do resistor
+int DRAW_RESISTOR_BOX(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height)
+{
+    if (labels <= 0 || blobs == NULL )
+        return 0;
+
+    // Variaveis para o quadrado
+    int square_width = video_width - 300;
+    int square_height = 400;
+
+    int square_x = ((video_width - square_width) / 2) + 30;
+    int square_y = (video_height - square_height) / 2;
+
+    // Inicializa os limites mínimos e máximos
+    int min_x = src->width;
+    int min_y = src->height;
+    int max_x = 0;
+    int max_y = 0;
+
+    // Encontra os limites mínimos e máximos dos blobs
+    for (int i = 0; i < labels; i++)
+    {
+        if (blobs[i].x < min_x) min_x = blobs[i].x;
+        if (blobs[i].y < min_y) min_y = blobs[i].y;
+        if (blobs[i].x + blobs[i].width > max_x) max_x = blobs[i].x + blobs[i].width;
+        if (blobs[i].y + blobs[i].height > max_y) max_y = blobs[i].y + blobs[i].height;
+    }
+
+    // Desenha a caixa delimitadora ao redor de todos os blobs
+    for (int y = min_y; y < max_y; y++)
+    {
+        for (int x = min_x; x < max_x; x++)
+        {
+            int pos_dst = y * dst->bytesperline + x * dst->channels;
+
+             if (x == min_x || x == max_x - 1 || y == min_y || y == max_y - 1)
+             {
+                dst->data[pos_dst] = 255; // Vermelho para a caixa
+                dst->data[pos_dst + 1] = 0;
+                dst->data[pos_dst + 2] = 0;
+             }
+        }
+    }
+    return 1;
+}
+

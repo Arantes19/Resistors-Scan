@@ -71,6 +71,9 @@ int main(void) {
 	video.width = (int)capture.get(cv::CAP_PROP_FRAME_WIDTH);
 	video.height = (int)capture.get(cv::CAP_PROP_FRAME_HEIGHT);
 
+	printf("%d\n", video.width); 
+	printf("%d", video.height); 
+
 	/* Cria uma janela para exibir o v�deo */
 	cv::namedWindow("VC - VIDEO", cv::WINDOW_AUTOSIZE);
 	cv::namedWindow("Segmented", cv::WINDOW_AUTOSIZE);
@@ -86,28 +89,27 @@ int main(void) {
 		/* Verifica se conseguiu ler a frame */
 		if (frame.empty()) break;
 
-		cv::GaussianBlur(frame, frame, cv::Size(5, 5), 0); 
+		//cv::GaussianBlur(frame, frame, cv::Size(5, 5), 0); 
 
 		/* N�mero da frame a processar */
 		video.nframe = (int)capture.get(cv::CAP_PROP_POS_FRAMES);
 
 		/* Exemplo de inser��o texto na frame */
-		str = std::string("RESOLUCAO: ").append(std::to_string(video.width)).append("x").append(std::to_string(video.height));
+		str = std::string("Resolucao: ").append(std::to_string(video.width)).append("x").append(std::to_string(video.height));
 		cv::putText(frame, str, cv::Point(20, 25), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
 		cv::putText(frame, str, cv::Point(20, 25), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
-		str = std::string("TOTAL DE FRAMES: ").append(std::to_string(video.ntotalframes));
+		str = std::string("Total de Frames: ").append(std::to_string(video.ntotalframes));
 		cv::putText(frame, str, cv::Point(20, 50), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
 		cv::putText(frame, str, cv::Point(20, 50), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
-		str = std::string("FRAME RATE: ").append(std::to_string(video.fps));
+		str = std::string("Frame rate: ").append(std::to_string(video.fps));
 		cv::putText(frame, str, cv::Point(20, 75), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
 		cv::putText(frame, str, cv::Point(20, 75), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
-		str = std::string("N. DA FRAME: ").append(std::to_string(video.nframe));
+		str = std::string("N. da frame: ").append(std::to_string(video.nframe));
 		cv::putText(frame, str, cv::Point(20, 100), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
 		cv::putText(frame, str, cv::Point(20, 100), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
 
 		//Criação de imagens
 		IVC *image0 = vc_image_new(video.width, video.height, 3, 255);
-
 
 		//Copia dados de imagem da estrutura cv::Mat para uma estrutura IVC
 		memcpy(image0->data, frame.data, video.width * video.height * 3);
@@ -121,15 +123,17 @@ int main(void) {
 		vc_hsv_segmentation(image1, image2, 30, 45, 45, 65, 50, 90);
 
 
-		//OVC* blobs = nullptr; 
-		//int nblobs = 0; 
-		//int labels = 0; 
+		OVC *blobs = nullptr; 
+		int nblobs = 0; 
+		int labels = 0;
+		int count = 0;
 
-		//IVC* resistor_labeled = vc_image_new(video.width, video.height, 1, 255); 
+		IVC* image3 = vc_image_new(video.width, video.height, 1, 255); 
 
-		//blobs = vc_binary_blob_labelling(image2, resistor_labeled, &nblobs); 
-		//vc_binary_blob_info(resistor_labeled, blobs, nblobs); 
+		blobs = vc_binary_blob_labelling(image2, image3, &nblobs);
+		vc_binary_blob_info(image3, blobs, nblobs); 
 
+		DRAW_RESISTOR_BOX(image3, image0, blobs, nblobs, video.width, video.height);
 
 		// Convert the binary image to color for visualization
 		cv::Mat seg_frame(video.height, video.width, CV_8UC1, image2->data);
@@ -141,12 +145,23 @@ int main(void) {
 		RGB_to_BGR(image0);  
 		memcpy(frame.data, image0->data, video.width * video.height * 3); 
 
+		str = std::string("Valor da resistencia: ").append(std::to_string(0));
+		cv::putText(frame, str, cv::Point(20, 125), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
+		cv::putText(frame, str, cv::Point(20, 125), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
+		str = std::string("Resistencias: ").append(std::to_string(0));
+		cv::putText(frame, str, cv::Point(20, 150), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
+		cv::putText(frame, str, cv::Point(20, 150), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
+
+
 		//Liberta a memoria das imagens IVC criadas
 		vc_image_free(image0);    
 		vc_image_free(image1); 
 		vc_image_free(image2);
+		vc_image_free(image3);
+
 		//vc_image_free(resistor_labeled); 
-		//free(blobs); 
+		free(blobs); 
+
 
 		// Exibe a frame original
 		cv::imshow("VC - VIDEO", frame);
