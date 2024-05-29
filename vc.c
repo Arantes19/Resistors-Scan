@@ -1051,64 +1051,54 @@ int vc_gray_to_binary_midpoint(IVC* src, IVC* dst, int kernel_size)
 int vc_binary_dilate(IVC* src, IVC* dst, int kernel_size)
 {
     unsigned char* datasrc = (unsigned char*)src->data;
-    int bytesperline_src = src->width * src->channels;
-    int channels_src = src->channels;
+    int bytesperline_src = src->width;
     unsigned char* datadst = (unsigned char*)dst->data;
-    int bytesperline_dst = dst->width * dst->channels;
-    int channels_dst = dst->channels;
+    int bytesperline_dst = dst->width;
     int width = src->width;
     int height = src->height;
     int x, y;
     long int pos_src, pos_dst;
-    float rf, gf, bf, pixel;
-    int should_dilate = 0;
+    int half_kernel = kernel_size / 2;
 
     for (y = 0; y < height; y++)
     {
         for (x = 0; x < width; x++)
         {
-            pos_src = (y * bytesperline_src) + (x * channels_src);
-            pos_dst = (y * bytesperline_dst) + (x * channels_dst);
-            pixel = (float)datasrc[pos_src];
-            should_dilate = 0;
-            int kpixel = 0;
-            for (int ky = y - (kernel_size / 2); ky < y + (kernel_size / 2); ++ky)
-            {
-                for (int kx = x - (kernel_size / 2); kx < x + (kernel_size / 2); ++kx)
-                {
-                    if (ky < 0 || ky >= height || kx < 0 || kx >= width)
-                    {
-                        continue;
-                    }
-                    // if (ky==(y * bytesperline_src) && kx==(x * channels_src))
-                    //{
-                    //     continue;
-                    // }
+            pos_dst = y * bytesperline_dst + x;
+            int should_dilate = 0;
 
-                    int kpos = (ky * bytesperline_dst) + (kx * channels_dst);
-                    kpixel = (int)datasrc[kpos];
-                    if (kpixel == 1)
+            // Calculate the bounds of the kernel
+            int ky_start = y - half_kernel;
+            int ky_end = y + half_kernel;
+            int kx_start = x - half_kernel;
+            int kx_end = x + half_kernel;
+
+            for (int ky = ky_start; ky <= ky_end; ky++)
+            {
+                if (ky < 0 || ky >= height)
+                    continue;
+
+                for (int kx = kx_start; kx <= kx_end; kx++)
+                {
+                    if (kx < 0 || kx >= width)
+                        continue;
+
+                    pos_src = ky * bytesperline_src + kx;
+                    if (datasrc[pos_src] == 1)
                     {
                         should_dilate = 1;
                         break;
                     }
                 }
-                if (should_dilate == 1)
-                {
+                if (should_dilate)
                     break;
-                }
             }
-            if (should_dilate == 1)
-            {
-                datadst[pos_dst] = 1;
-            }
-            else
-            {
-                datadst[pos_dst] = 0;
-            }
+
+            datadst[pos_dst] = should_dilate ? 1 : 0;
         }
     }
 }
+
 
 int vc_binary_erode(IVC* src, IVC* dst, int kernel_size)
 {
@@ -2033,7 +2023,7 @@ int DRAW_RESISTOR_BOX_3(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
     int xmin, ymin, xmax, ymax;
     long int sumx, sumy;
 
-    int teste=0;
+    static int teste=0;
 
     // Verificação de erros
     if ((width_src <= 0) || (height_src <= 0) || (datasrc == NULL)) return 0;
@@ -2057,10 +2047,10 @@ int DRAW_RESISTOR_BOX_3(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
             if (blobs[i].x + blobs[i].width > max_x) max_x = blobs[i].x + blobs[i].width;
             if (blobs[i].y + blobs[i].height > max_y) max_y = blobs[i].y + blobs[i].height;
             
-
         }
-    }
+        
 
+    }
     
     
 
@@ -2079,13 +2069,7 @@ int DRAW_RESISTOR_BOX_3(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
 
             }
         }
-        /*
-        if (min_y == video_height - 10)
-        {
-            (*count)++;
-          // (*count) = (*count)/2642;
-        }
-        */
+                
     }
 
     if ((min_y < height_src) && (max_y > 0))
@@ -2120,8 +2104,10 @@ int DRAW_RESISTOR_BOX_3(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
         datadst[pos_5 + 1] = 255;
         datadst[pos_5 + 2] = 255;
        
+   
     }
 
+    
 
 
     return 1;
