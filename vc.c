@@ -839,7 +839,7 @@ int vc_hsv_segmentation(IVC* src, IVC* dst)
 
 
             // Check if the pixel falls within the specified HSV range (resistor || green || blue || red)
-            if ((h >= 30 && h <= 45 && s >= 45 && s <= 65 && v >= 50 && v <= 90))
+            if ( ( ( h >= 30 && h <= 45 ) && ( s >= 45 && s <= 65 ) && ( v >= 50 && v <= 90 ) ) )
             {
                 datadst[pos_dst] = 255; // Pixel is within range, mark as white 
             }
@@ -1635,7 +1635,7 @@ int RGB_to_BGR(IVC* src)
 }
 
 // Função para desenhar a bounding box do resistor
-int DRAW_RESISTOR_BOX_1(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height)
+int DRAW_RESISTOR_BOX_1(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height, int* min_x, int* max_x, int* min_y, int* max_y)
 {
     unsigned char* datasrc = (unsigned char*)src->data;
     unsigned char* datadst = (unsigned char*)dst->data;
@@ -1644,39 +1644,34 @@ int DRAW_RESISTOR_BOX_1(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
     int bytesperline_dst = dst->bytesperline;
     int channels_src = src->channels;
     int channels_dst = dst->channels;
-    int x, y, i;
     long int pos_dst, pos_1, pos_2, pos_3, pos_4, pos_5;
-    int aux_x, aux_y;
-    int xmin, ymin, xmax, ymax;
-    long int sumx, sumy;
     int total_area = 0; // Variable to store the total area of the blobs
     static int count = 0;
     static int previous_crossed = 0; // Flag to determine if the center of mass has crossed the row
 
-    // Verificação de erros
+    // Error checking
     if ((width_src <= 0) || (height_src <= 0) || (datasrc == NULL)) return 0;
     if (channels_src != 1) return 0;
     if (labels <= 0 || blobs == NULL) return 0;
 
-    // Inicializa os limites mínimos e máximos
-    int min_x = width_src;
-    int min_y = height_src;
-    int max_x = 0;
-    int max_y = 0;
+    // Initialize min and max boundaries
+    *min_x = width_src;
+    *min_y = height_src;
+    *max_x = 0;
+    *max_y = 0;
 
     for (int i = 0; i < labels; i++)
     {
         if (blobs[i].y <= height_src * 0.3)
         {
-            if (blobs[i].x < min_x) min_x = blobs[i].x;
-            if (blobs[i].y < min_y) min_y = blobs[i].y;
-            if (blobs[i].x + blobs[i].width > max_x) max_x = blobs[i].x + blobs[i].width;
-            if (blobs[i].y + blobs[i].height > max_y) max_y = blobs[i].y + blobs[i].height;
+            if (blobs[i].x < *min_x) *min_x = blobs[i].x;
+            if (blobs[i].y < *min_y) *min_y = blobs[i].y;
+            if (blobs[i].x + blobs[i].width > *max_x) *max_x = blobs[i].x + blobs[i].width;
+            if (blobs[i].y + blobs[i].height > *max_y) *max_y = blobs[i].y + blobs[i].height;
 
             // Calculate the area of the current blob and add it to the total area
             int blob_area = blobs[i].width * blobs[i].height;
             total_area += blob_area;
-            //printf("%d\n", total_area);
         }
     }
 
@@ -1684,8 +1679,8 @@ int DRAW_RESISTOR_BOX_1(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
     if (total_area > 600 && total_area < 10000)
     {
         // Calculate the center of mass (centroid) of the bounding box
-        int center_x = (min_x + max_x) / 2;
-        int center_y = (min_y + max_y) / 2;
+        int center_x = (*min_x + *max_x) / 2;
+        int center_y = (*min_y + *max_y) / 2;
 
         // Check if the center of mass crosses the specific row
         if (center_y >= 150 && !previous_crossed)
@@ -1698,27 +1693,27 @@ int DRAW_RESISTOR_BOX_1(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
             previous_crossed = 0; // Reset the flag if center is above the specific row
         }
 
-        // Desenha a caixa delimitadora ao redor de todos os blobs
-        for (int y = min_y; y < max_y; y++)
+        // Draw the bounding box around all blobs
+        for (int y = *min_y; y < *max_y; y++)
         {
-            for (int x = min_x; x < max_x; x++)
+            for (int x = *min_x; x < *max_x; x++)
             {
                 pos_dst = y * bytesperline_dst + x * channels_dst;
 
-                if (x == min_x || x == max_x - 1 || y == min_y || y == max_y - 1)
+                if (x == *min_x || x == *max_x - 1 || y == *min_y || y == *max_y - 1)
                 {
-                    datadst[pos_dst] = 255; // Vermelho para a caixa
+                    datadst[pos_dst] = 255; // Red for the box
                     datadst[pos_dst + 1] = 0;
                     datadst[pos_dst + 2] = 0;
                 }
             }
         }
 
-        // Verifica se a Border é valida 
-        if ((min_y < height_src) && (max_y > 0))
+        // Verify if the border is valid
+        if ((*min_y < height_src) && (*max_y > 0))
         {
-            aux_x = max_x - ((max_x - min_x) / 2);
-            aux_y = max_y - ((max_y - min_y) / 2);
+            int aux_x = *max_x - ((*max_x - *min_x) / 2);
+            int aux_y = *max_y - ((*max_y - *min_y) / 2);
 
             pos_1 = aux_y * bytesperline_dst + aux_x * channels_dst;
             pos_2 = (aux_y + 1) * bytesperline_dst + aux_x * channels_dst;
@@ -1726,33 +1721,34 @@ int DRAW_RESISTOR_BOX_1(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
             pos_4 = (aux_y - 1) * bytesperline_dst + aux_x * channels_dst;
             pos_5 = aux_y * bytesperline_dst + (aux_x - 1) * channels_dst;
 
-            datadst[pos_1] = 255; // Vermelho para a caixa
+            datadst[pos_1] = 255; // Red for the box
             datadst[pos_1 + 1] = 0;
             datadst[pos_1 + 2] = 0;
 
-            datadst[pos_2] = 255; // Vermelho para a caixa
+            datadst[pos_2] = 255; // Red for the box
             datadst[pos_2 + 1] = 0;
             datadst[pos_2 + 2] = 0;
 
-            datadst[pos_3] = 255; // Vermelho para a caixa
+            datadst[pos_3] = 255; // Red for the box
             datadst[pos_3 + 1] = 0;
             datadst[pos_3 + 2] = 0;
 
-            datadst[pos_4] = 255; // Vermelho para a caixa
+            datadst[pos_4] = 255; // Red for the box
             datadst[pos_4 + 1] = 0;
             datadst[pos_4 + 2] = 0;
 
-            datadst[pos_5] = 255; // Vermelho para a caixa
+            datadst[pos_5] = 255; // Red for the box
             datadst[pos_5 + 1] = 0;
             datadst[pos_5 + 2] = 0;
         }
     }
 
-    return count; 
+    return count;
 }
 
+
 // Função para desenhar a bounding box do resistor
-int DRAW_RESISTOR_BOX_2(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height)
+int DRAW_RESISTOR_BOX_2(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height, int* min_x, int* max_x, int* min_y, int* max_y)
 {
     unsigned char* datasrc = (unsigned char*)src->data;
     unsigned char* datadst = (unsigned char*)dst->data;
@@ -1763,7 +1759,6 @@ int DRAW_RESISTOR_BOX_2(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
     int channels_dst = dst->channels;
     long int pos_dst, pos_1, pos_2, pos_3, pos_4, pos_5;
     int aux_x, aux_y;
-    int min_x, min_y, max_x, max_y;
     int total_area = 0; // Variable to store the total area of the blobs
 
     // Error checks
@@ -1772,37 +1767,37 @@ int DRAW_RESISTOR_BOX_2(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
     if (labels <= 0 || blobs == NULL) return 0;
 
     // Initialize the minimum and maximum limits
-    min_x = width_src;
-    min_y = height_src;
-    max_x = 0;
-    max_y = 0;
+    *min_x = width_src;
+    *min_y = height_src;
+    *max_x = 0;
+    *max_y = 0;
 
     // Find the bounding box that includes all blobs within the specified y range
     for (int i = 0; i < labels; i++)
     {
         if ((blobs[i].y >= height_src * 0.3) && (blobs[i].y <= height_src * 0.65))
         {
-            if (blobs[i].x < min_x) min_x = blobs[i].x;
-            if (blobs[i].y < min_y) min_y = blobs[i].y;
-            if (blobs[i].x + blobs[i].width > max_x) max_x = blobs[i].x + blobs[i].width;
-            if (blobs[i].y + blobs[i].height > max_y) max_y = blobs[i].y + blobs[i].height;
+            if (blobs[i].x < *min_x) *min_x = blobs[i].x;
+            if (blobs[i].y < *min_y) *min_y = blobs[i].y;
+            if (blobs[i].x + blobs[i].width > *max_x) *max_x = blobs[i].x + blobs[i].width;
+            if (blobs[i].y + blobs[i].height > *max_y) *max_y = blobs[i].y + blobs[i].height;
 
             // Calculate the area of the current blob and add it to the total area
             int blob_area = blobs[i].width * blobs[i].height;
             total_area += blob_area;
-            //printf("%d\n", total_area);
         }
     }
+
     // Only draw the bounding box if the total area is within the specified range
-    if (total_area > 600 && total_area < 5000) 
+    if (total_area > 600 && total_area < 5000)
     {
         // Draw the bounding box around all the blobs
-        for (int y = min_y; y < max_y; y++)
+        for (int y = *min_y; y < *max_y; y++)
         {
-            for (int x = min_x; x < max_x; x++)
+            for (int x = *min_x; x < *max_x; x++)
             {
                 pos_dst = y * bytesperline_dst + x * channels_dst;
-                if (x == min_x || x == max_x - 1 || y == min_y || y == max_y - 1)
+                if (x == *min_x || x == *max_x - 1 || y == *min_y || y == *max_y - 1)
                 {
                     datadst[pos_dst] = 0;       // Red channel
                     datadst[pos_dst + 1] = 0;   // Green channel
@@ -1812,10 +1807,10 @@ int DRAW_RESISTOR_BOX_2(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
         }
 
         // Draw the center cross only if any blob satisfies the y condition
-        if ((min_y < height_src) && (max_y > 0))
+        if ((*min_y < height_src) && (*max_y > 0))
         {
-            aux_x = min_x + (max_x - min_x) / 2;
-            aux_y = min_y + (max_y - min_y) / 2;
+            aux_x = *min_x + (*max_x - *min_x) / 2;
+            aux_y = *min_y + (*max_y - *min_y) / 2;
 
             pos_1 = aux_y * bytesperline_dst + aux_x * channels_dst;
             pos_2 = (aux_y + 1) * bytesperline_dst + aux_x * channels_dst;
@@ -1849,7 +1844,7 @@ int DRAW_RESISTOR_BOX_2(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
 }
 
 // Função para desenhar a bounding box do resistor
-int DRAW_RESISTOR_BOX_3(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height)
+int DRAW_RESISTOR_BOX_3(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height, int* min_x, int* max_x, int* min_y, int* max_y)
 {
     unsigned char* datasrc = (unsigned char*)src->data;
     unsigned char* datadst = (unsigned char*)dst->data;
@@ -1858,68 +1853,60 @@ int DRAW_RESISTOR_BOX_3(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
     int bytesperline_dst = dst->bytesperline;
     int channels_src = src->channels;
     int channels_dst = dst->channels;
-    int x, y, i;
     long int pos_dst, pos_1, pos_2, pos_3, pos_4, pos_5;
     int aux_x, aux_y;
-    int xmin, ymin, xmax, ymax;
-    long int sumx, sumy;
     int total_area = 0; // Variable to store the total area of the blobs
 
-
-    // Verificação de erros
+    // Error checks
     if ((width_src <= 0) || (height_src <= 0) || (datasrc == NULL)) return 0;
     if (channels_src != 1) return 0;
+    if (labels <= 0 || blobs == NULL) return 0;
 
-    if (labels <= 0 || blobs == NULL)
-        return 0;
+    // Initialize the minimum and maximum limits
+    *min_x = width_src;
+    *min_y = height_src;
+    *max_x = 0;
+    *max_y = 0;
 
-    // Inicializa os limites mínimos e máximos
-    int min_x = width_src;
-    int min_y = height_src;
-    int max_x = 0;
-    int max_y = 0;
-
+    // Find the bounding box that includes all blobs within the specified y range
     for (int i = 0; i < labels; i++)
     {
-        if (blobs[i].y >= height_src * 0.65) {
-
-            if (blobs[i].x < min_x) min_x = blobs[i].x;
-            if (blobs[i].y < min_y) min_y = blobs[i].y;
-            if (blobs[i].x + blobs[i].width > max_x) max_x = blobs[i].x + blobs[i].width;
-            if (blobs[i].y + blobs[i].height > max_y) max_y = blobs[i].y + blobs[i].height;
+        if ((blobs[i].y >= height_src * 0.3) && (blobs[i].y <= height_src * 0.65))
+        {
+            if (blobs[i].x < *min_x) *min_x = blobs[i].x;
+            if (blobs[i].y < *min_y) *min_y = blobs[i].y;
+            if (blobs[i].x + blobs[i].width > *max_x) *max_x = blobs[i].x + blobs[i].width;
+            if (blobs[i].y + blobs[i].height > *max_y) *max_y = blobs[i].y + blobs[i].height;
 
             // Calculate the area of the current blob and add it to the total area
             int blob_area = blobs[i].width * blobs[i].height;
             total_area += blob_area;
-            printf("%d\n", total_area);
         }
     }
-    
-    
-    if (total_area > 600 && total_area < 5000) 
+
+    // Only draw the bounding box if the total area is within the specified range
+    if (total_area > 600 && total_area < 5000)
     {
-        // Desenha a caixa delimitadora ao redor de todos os blobs
-        for (y = min_y; y < max_y; y++)
+        // Draw the bounding box around all the blobs
+        for (int y = *min_y; y < *max_y; y++)
         {
-            for (x = min_x; x < max_x; x++)
+            for (int x = *min_x; x < *max_x; x++)
             {
                 pos_dst = y * bytesperline_dst + x * channels_dst;
-
-                if (x == min_x || x == max_x - 1 || y == min_y || y == max_y - 1)
+                if (x == *min_x || x == *max_x - 1 || y == *min_y || y == *max_y - 1)
                 {
-                    datadst[pos_dst] = 255;
-                    datadst[pos_dst + 1] = 255;
-                    datadst[pos_dst + 2] = 255;
-
+                    datadst[pos_dst] = 0;       // Red channel
+                    datadst[pos_dst + 1] = 0;   // Green channel
+                    datadst[pos_dst + 2] = 0;   // Blue channel
                 }
             }
-
         }
 
-        if ((min_y < height_src) && (max_y > 0))
+        // Draw the center cross only if any blob satisfies the y condition
+        if ((*min_y < height_src) && (*max_y > 0))
         {
-            aux_x = max_x - ((max_x - min_x) / 2);
-            aux_y = max_y - ((max_y - min_y) / 2);
+            aux_x = *min_x + (*max_x - *min_x) / 2;
+            aux_y = *min_y + (*max_y - *min_y) / 2;
 
             pos_1 = aux_y * bytesperline_dst + aux_x * channels_dst;
             pos_2 = (aux_y + 1) * bytesperline_dst + aux_x * channels_dst;
@@ -1927,27 +1914,85 @@ int DRAW_RESISTOR_BOX_3(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
             pos_4 = (aux_y - 1) * bytesperline_dst + aux_x * channels_dst;
             pos_5 = aux_y * bytesperline_dst + (aux_x - 1) * channels_dst;
 
+            datadst[pos_1] = 0;
+            datadst[pos_1 + 1] = 0;
+            datadst[pos_1 + 2] = 0;
 
-            datadst[pos_1] = 255; // Vermelho para a caixa
-            datadst[pos_1 + 1] = 255;
-            datadst[pos_1 + 2] = 255;
+            datadst[pos_2] = 0;
+            datadst[pos_2 + 1] = 0;
+            datadst[pos_2 + 2] = 0;
 
-            datadst[pos_2] = 255; // Vermelho para a caixa
-            datadst[pos_2 + 1] = 255;
-            datadst[pos_2 + 2] = 255;
+            datadst[pos_3] = 0;
+            datadst[pos_3 + 1] = 0;
+            datadst[pos_3 + 2] = 0;
 
-            datadst[pos_3] = 255; // Vermelho para a caixa
-            datadst[pos_3 + 1] = 255;
-            datadst[pos_3 + 2] = 255;
+            datadst[pos_4] = 0;
+            datadst[pos_4 + 1] = 0;
+            datadst[pos_4 + 2] = 0;
 
-            datadst[pos_4] = 255; // Vermelho para a caixa
-            datadst[pos_4 + 1] = 255;
-            datadst[pos_4 + 2] = 255;
+            datadst[pos_5] = 0;
+            datadst[pos_5 + 1] = 0;
+            datadst[pos_5 + 2] = 0;
 
-            datadst[pos_5] = 255; // Vermelho para a caixa
-            datadst[pos_5 + 1] = 255;
-            datadst[pos_5 + 2] = 255;
         }
     }
     return 1;
+}
+
+int vc_color_segmentation(IVC* src, IVC* dst, int max_y, int min_y, int max_x, int min_x )
+{
+    unsigned char* datasrc = (unsigned char*)src->data;
+    int byterperline_src = src->width * src->channels;
+    int channels_src = src->channels;
+    unsigned char* datadst = (unsigned char*)dst->data;
+    int bytesperline_dst = dst->width * dst->channels;
+    int channels_dst = dst->channels;
+    int width = src->width;
+    int height = src->height;
+    int x, y;
+    long int pos_src, pos_dst;
+    float h, s, v;
+
+    if (src->width <= 0 || src->height <= 0 || src->data == NULL)
+        return 0;
+    if (src->width != dst->width || src->height != dst->height)
+        return 0;
+    if (src->channels != 3 || dst->channels != 1)
+        return 0;
+
+    // Segmentation loop
+    for (y = min_y; y < max_y; y++)
+    {
+        for (x = min_x; x < max_x; x++)
+        {
+            pos_src = y * byterperline_src + x * channels_src;
+            pos_dst = y * bytesperline_dst + x * channels_dst;
+
+            // Extract HSV values directly from the src image
+            h = ((float)datasrc[pos_src]) / 255.0f * 360.0f;
+            s = ((float)datasrc[pos_src + 1]) / 255.0f * 100.0f;
+            v = ((float)datasrc[pos_src + 2]) / 255.0f * 100.0f;
+
+
+            // Check if the pixel falls within the specified HSV range (green || blue || red)
+            if (((h >= 67 && h <= 110 && s >= 25 && s <= 50 && v >= 37 && v <= 50) ||   //Verde
+                (h >= 115 && h <= 200 && s >= 10 && s <= 43 && v >= 35 && v <= 48) ||   //Azul
+                (h >= 6 && h <= 16 && s >= 50 && s <= 72 && v >= 60 && v <= 80) ||      //Vermelho
+                (h >= 10 && h <= 24 && s >= 70 && s <= 83 && v >= 80 && v <= 100) ||    //Laranja
+                (h >= 30 && h <= 100 && s >= 3 && s <= 35 && v >= 22 && v <= 27) ||     //Preto
+                (h >= 20 && h <= 38 && s >= 23 && s <= 51 && v >= 31 && v <= 50)))      //Castanho
+            {
+                datadst[pos_dst] = 255; // Pixel is within range, mark as white 
+            }
+            else
+            {
+                datadst[pos_dst] = 0; // Pixel is outside range, mark as black 
+            }
+
+
+
+        }
+    }
+
+    return 1; // Success
 }
