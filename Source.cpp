@@ -73,9 +73,6 @@ int main(void) {
 	video.width = (int)capture.get(cv::CAP_PROP_FRAME_WIDTH);
 	video.height = (int)capture.get(cv::CAP_PROP_FRAME_HEIGHT);
 
-	printf("%d\n", video.width); 
-	printf("%d", video.height); 
-
 	/* Cria uma janela para exibir o v�deo */
 	cv::namedWindow("VC - VIDEO", cv::WINDOW_AUTOSIZE);
 	cv::namedWindow("Segmented", cv::WINDOW_AUTOSIZE);
@@ -91,7 +88,7 @@ int main(void) {
 		/* Verifica se conseguiu ler a frame */
 		if (frame.empty()) break;
 
-		//cv::GaussianBlur(frame, frame, cv::Size(5, 5), 0); 
+		cv::GaussianBlur(frame, frame, cv::Size(5, 5), 0); 
 
 		/* N�mero da frame a processar */
 		video.nframe = (int)capture.get(cv::CAP_PROP_POS_FRAMES);
@@ -121,51 +118,33 @@ int main(void) {
 		IVC *image1 = vc_image_new(video.width, video.height, 3, 255);
 		vc_rgb_to_hsv(image0, image1);
 
-
 		IVC *image2 = vc_image_new(video.width, video.height, 1, 255); 
-		vc_hsv_segmentation(image1, image2, 30, 45, 45, 65, 50, 90);
+		vc_hsv_segmentation(image1, image2); //cor da resistencia
 
-		/*Segmentação e contagem das cores*/
-
-		/*IVC* image5 = vc_image_new(video.width, video.height, 1, 255);
-		vc_hsv_segmentation(image1, image5, 67, 110, 25, 50, 37, 50);
-
-		IVC* image6 = vc_image_new(video.width, video.height, 1, 255);
-		vc_hsv_segmentation(image1, image6, 115, 200, 10, 43, 35, 48);
-
-		IVC* image7 = vc_image_new(video.width, video.height, 1, 255);
-		vc_hsv_segmentation(image1, image7, 6, 16, 50, 72, 60, 80);
-
-		IVC* image8 = vc_image_new(video.width, video.height, 1, 255);
-		vc_hsv_segmentation(image1, image8, 20, 38, 23, 51, 31, 50);
-
-		IVC* image9 = vc_image_new(video.width, video.height, 1, 255);
-		vc_hsv_segmentation(image1, image9, 30, 100, 3, 35, 22, 27);*/
+		IVC *image3 = vc_image_new(video.width, video.height, 1, 255);
+		vc_binary_close(image2, image3, 3, 3);
 
 
 		OVC *blobs = nullptr; 
 		int nblobs = 0; 
-		int labels = 0;
 		int count;
 
-		IVC* image3 = vc_image_new(video.width, video.height, 1, 255);
-		//IVC* image4 = vc_image_new(video.width, video.height, 1, 255);
+		IVC* image4 = vc_image_new(video.width, video.height, 1, 255);
 
 
-		blobs = vc_binary_blob_labelling(image2, image3, &nblobs);
+		blobs = vc_binary_blob_labelling(image3, image4, &nblobs);
 
-		vc_binary_blob_info(image3, blobs, nblobs);
+		vc_binary_blob_info(image4, blobs, nblobs);
 
 		/*Foram realizados 3 desenhos de maneira a evitar a criação de um border entre 2 resistencias*/
-
-		count = DRAW_RESISTOR_BOX_1(image3, image0, blobs, nblobs, video.width, video.height);//Parte de cima da imagem, <=30% da Height 
-		DRAW_RESISTOR_BOX_2(image3, image0, blobs, nblobs, video.width, video.height);//Parte do meio da imagem, [30,70[% da Height
-		DRAW_RESISTOR_BOX_3(image3, image0, blobs, nblobs, video.width, video.height);//Parte de baixo da imagem, >=70% da Height
+		count = DRAW_RESISTOR_BOX_1(image4, image0, blobs, nblobs, video.width, video.height);//Parte de cima da imagem, <=30% da Height 
+		DRAW_RESISTOR_BOX_2(image4, image0, blobs, nblobs, video.width, video.height);//Parte do meio da imagem, [30,70[% da Height
+		DRAW_RESISTOR_BOX_3(image4, image0, blobs, nblobs, video.width, video.height);//Parte de baixo da imagem, >=70% da Height
 
 		
 
 		// Convert the binary image to color for visualization
-		cv::Mat seg_frame(video.height, video.width, CV_8UC1, image2->data);
+		cv::Mat seg_frame(video.height, video.width, CV_8UC1, image3->data); 
 		 
 		cv::Mat color_seg_frame;
 		cv::cvtColor(seg_frame, color_seg_frame, cv::COLOR_GRAY2BGR); 
@@ -187,10 +166,11 @@ int main(void) {
 		vc_image_free(image1); 
 		vc_image_free(image2);
 		vc_image_free(image3);
+		vc_image_free(image4);
 
 
 		//vc_image_free(resistor_labeled); 
-		free(blobs); 
+		free(blobs);  
 
 
 		// Exibe a frame original

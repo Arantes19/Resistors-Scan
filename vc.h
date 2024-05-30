@@ -32,10 +32,6 @@ typedef struct {
 	int bytesperline;		// width * channels
 } IVC;
 
-typedef struct {
-	int x, y, width, height;
-} BoundingBox;
-
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //                    PROT?TIPOS DE FUN??ES
@@ -59,7 +55,7 @@ int vc_rgb_to_hsv2(IVC* srcdst);
 IVC* vc_convert_bgr_to_rgb(IVC* src); 
 int getMax(int r, int g, int b);
 int getMin(int r, int g, int b);
-int vc_hsv_segmentation(IVC* src, IVC* dst, int hmin, int hmax, int smin, int smax, int vmin, int vmax);
+int vc_hsv_segmentation(IVC* src, IVC* dst);
 int vc_gray_3channels(IVC* src, IVC* dst);
 int vc_scale_gray_to_rgb(IVC* src, IVC* dst);
 int vc_gray_to_binary(IVC* src, IVC* dst, int threshold);
