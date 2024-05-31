@@ -132,10 +132,9 @@ int main(void) {
 		OVC *blobs = nullptr; 
 		int nblobs = 0; 
 		int count;
-		int max_y;
-		int min_y;
-		int max_x;
-		int min_x;
+		int min_x1, max_x1, min_y1, max_y1;
+		int min_x2, max_x2, min_y2, max_y2;
+		int min_x3, max_x3, min_y3, max_y3;
 
 		IVC* image4 = vc_image_new(video.width, video.height, 1, 255);
 
@@ -145,19 +144,18 @@ int main(void) {
 		vc_binary_blob_info(image4, blobs, nblobs);
 
 		/*Foram realizados 3 desenhos de maneira a evitar a criação de um border entre 2 resistencias*/
-		count = DRAW_RESISTOR_BOX_1(image4, image0, blobs, nblobs, video.width, video.height, &min_x, &max_x, &min_y, &max_y);//Parte de cima da imagem, <=30% da Height 
-		DRAW_RESISTOR_BOX_2(image4, image0, blobs, nblobs, video.width, video.height, &min_x, &max_x, &min_y, &max_y);//Parte do meio da imagem, [30,70[% da Height
-		DRAW_RESISTOR_BOX_3(image4, image0, blobs, nblobs, video.width, video.height, &min_x, &max_x, &min_y, &max_y);//Parte de baixo da imagem, >=70% da Height
+		count = DRAW_RESISTOR_BOX_1(image4, image0, blobs, nblobs, video.width, video.height, &min_x1, &max_x1, &min_y1, &max_y1);//Parte de cima da imagem, <=30% da Height 
+		DRAW_RESISTOR_BOX_2(image4, image0, blobs, nblobs, video.width, video.height, &min_x2, &max_x2, &min_y2, &max_y2);//Parte do meio da imagem, [30,70[% da Height
+		DRAW_RESISTOR_BOX_3(image4, image0, blobs, nblobs, video.width, video.height, &min_x3, &max_x3, &min_y3, &max_y3);//Parte de baixo da imagem, >=70% da Height
 
 		IVC* image5 = vc_image_new(video.width, video.height, 1, 255);
-		vc_color_segmentation(image1, image5, max_y, min_y, max_x, min_x); //cores do Video
-
-		IVC* image6 = vc_image_new(video.width, video.height, 1, 255);
-		vc_binary_close(image5, image6, 3, 3);
+		vc_color_segmentation(image1, image5, max_y1, min_y1, max_x1, min_x1);
+		vc_color_segmentation(image1, image5, max_y2, min_y2, max_x2, min_x2);
+		vc_color_segmentation(image1, image5, max_y3, min_y3, max_x3, min_x3);
 
 
 		// Convert the binary image to color for visualization
-		cv::Mat seg_frame(video.height, video.width, CV_8UC1, image6->data); 
+		cv::Mat seg_frame(video.height, video.width, CV_8UC1, image5->data); 
 		 
 		cv::Mat color_seg_frame;
 		cv::cvtColor(seg_frame, color_seg_frame, cv::COLOR_GRAY2BGR); 
@@ -181,7 +179,7 @@ int main(void) {
 		vc_image_free(image3);
 		vc_image_free(image4);
 		vc_image_free(image5);
-		vc_image_free(image6);
+		//vc_image_free(image6);
 
 
 
