@@ -81,6 +81,7 @@ int DRAW_RESISTOR_BOX_2(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
 int DRAW_RESISTOR_BOX_3(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height, int* min_x, int* main_y, int* max_x, int* max_y);
 int vc_color_segmentation(IVC* src, IVC* dst, int max_y, int min_y, int max_x, int min_x);
 int DRAW_Color_box1(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height, int* min_x, int* max_x, int* min_y, int* max_y);
+int vc_color_calculator(IVC* src, IVC* dst, int* nlabels, int* min_x, int* max_x, int* min_y, int* max_y, int* cores);
 
 
 

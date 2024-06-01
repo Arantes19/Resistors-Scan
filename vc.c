@@ -15,6 +15,7 @@
 #include <string.h>
 #include <malloc.h>
 #include "vc.h"
+#include <stdbool.h>
 
 #define MAX3(r, g, b) (r > g ? (r > b ? r : b) : (g > b ? g : b)) 
 #define MIN3(r, g, b) (r < g ? (r < b ? r : b) : (g < b ? g : b)) 
@@ -1932,6 +1933,7 @@ int DRAW_RESISTOR_BOX_3(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
             for (int x = *min_x; x < *max_x; x++)
             {
                 pos_dst = y * bytesperline_dst + x * channels_dst;
+
                 if (x == *min_x || x == *max_x - 1 || y == *min_y || y == *max_y - 1)
                 {
                     datadst[pos_dst] = 0;       // Red channel
@@ -2110,199 +2112,63 @@ int DRAW_Color_box1(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width,
 }
 
 
-OVC* vc_color_calculator(IVC* src, IVC* dst, int* nlabels)
+int vc_color_calculator(IVC* src, IVC* dst, int* nlabels, int* min_x, int* max_x, int* min_y, int* max_y, int* cores)
 {
     unsigned char* datasrc = (unsigned char*)src->data;
     unsigned char* datadst = (unsigned char*)dst->data;
-    int width = src->width;
-    int height = src->height;
-    int bytesperline = src->bytesperline;
-    int channels = src->channels;
-    int x, y, a, b;
-    long int i, size;
-    long int posX, posA, posB, posC, posD;
-    int labeltable[256] = { 0 };
-    int labelarea[256] = { 0 };
-    int label = 1; // Etiqueta inicial.
-    int num, tmplabel;
-    OVC* blobs; // Apontador para array de blobs (objectos) que ser� retornado desta fun��o.
+    int width_src = src->width;
+    int height_src = src->height;
+    int bytesperline_dst = dst->bytesperline;
+    int channels_src = src->channels;
+    int channels_dst = dst->channels;
+    long int pos_dst;
+    int aux_y;
+
+    int array1[10] = { 0 }; // Array to store values for the first condition
+    int array2[10] = { 0 }; // Array to store values for the second condition
 
     // Verifica��o de erros
     if ((src->width <= 0) || (src->height <= 0) || (src->data == NULL)) return 0;
     if ((src->width != dst->width) || (src->height != dst->height) || (src->channels != dst->channels)) return NULL;
-    if (channels != 1) return NULL;
+    if (channels_dst != 1) return NULL;
 
     // Copia dados da imagem bin�ria para imagem grayscale
-    memcpy(datadst, datasrc, bytesperline * height);
+    memcpy(datadst, datasrc, bytesperline_dst * height_src);
 
-    // Todos os pix�is de plano de fundo devem obrigat�riamente ter valor 0
-    // Todos os pix�is de primeiro plano devem obrigat�riamente ter valor 255
-    // Ser�o atribu�das etiquetas no intervalo [1,254]
-    // Este algoritmo est� assim limitado a 254 labels
-    for (i = 0, size = bytesperline * height; i < size; i++)
+    // Draw the bounding box around all the blobs
+    for (int y = *min_y; y < *max_y; y++)
     {
-        if (datadst[i] != 0) datadst[i] = 255;
-    }
-
-    // Limpa os rebordos da imagem bin�ria
-    for (y = 0; y < height; y++)
-    {
-        datadst[y * bytesperline + 0 * channels] = 0;
-        datadst[y * bytesperline + (width - 1) * channels] = 0;
-    }
-    for (x = 0; x < width; x++)
-    {
-        datadst[0 * bytesperline + x * channels] = 0;
-        datadst[(height - 1) * bytesperline + x * channels] = 0;
-    }
-
-    // Efectua a etiquetagem
-    for (y = 1; y < height - 1; y++)
-    {
-        for (x = 1; x < width - 1; x++)
+        for (int x = *min_x; x < *max_x; x++)
         {
-            // Kernel:
-            // A B C
-            // D X
+            pos_dst = y * bytesperline_dst + x * channels_dst;
 
-            posA = (y - 1) * bytesperline + (x - 1) * channels; // A
-            posB = (y - 1) * bytesperline + x * channels; // B
-            posC = (y - 1) * bytesperline + (x + 1) * channels; // C
-            posD = y * bytesperline + (x - 1) * channels; // D
-            posX = y * bytesperline + x * channels; // X
+            aux_y = *min_y + (*max_y - *min_y) / 2;
 
-            // Se o pixel foi marcado
-            if (datadst[posX] != 0)
+            if (y == aux_y)
             {
-                if ((datadst[posA] == 0) && (datadst[posB] == 0) && (datadst[posC] == 0) && (datadst[posD] == 0))
+                int pixel_value = datadst[pos_dst];
+                if (pixel_value >= 249 && pixel_value <= 254)
                 {
-                    datadst[posX] = label;
-                    labeltable[label] = label;
-                    label++;
-                }
-                else
-                {
-                    num = 255;
-
-                    // Se A est� marcado
-                    if (datadst[posA] != 0) num = labeltable[datadst[posA]];
-                    // Se B est� marcado, e � menor que a etiqueta "num"
-                    if ((datadst[posB] != 0) && (labeltable[datadst[posB]] < num)) num = labeltable[datadst[posB]];
-                    // Se C est� marcado, e � menor que a etiqueta "num"
-                    if ((datadst[posC] != 0) && (labeltable[datadst[posC]] < num)) num = labeltable[datadst[posC]];
-                    // Se D est� marcado, e � menor que a etiqueta "num"
-                    if ((datadst[posD] != 0) && (labeltable[datadst[posD]] < num)) num = labeltable[datadst[posD]];
-
-                    // Atribui a etiqueta ao pixel
-                    datadst[posX] = num;
-                    labeltable[num] = num;
-
-                    // Actualiza a tabela de etiquetas
-                    if (datadst[posA] != 0)
+                    if (pixel_value == 254 && array1[0] == 0)
                     {
-                        if (labeltable[datadst[posA]] != num)
-                        {
-                            for (tmplabel = labeltable[datadst[posA]], a = 1; a < label; a++)
-                            {
-                                if (labeltable[a] == tmplabel)
-                                {
-                                    labeltable[a] = num;
-                                }
-                            }
-                        }
+                        array1[0] = 5;
                     }
-                    if (datadst[posB] != 0)
+                    else if (pixel_value == 253 && array2[1] == 0)
                     {
-                        if (labeltable[datadst[posB]] != num)
-                        {
-                            for (tmplabel = labeltable[datadst[posB]], a = 1; a < label; a++)
-                            {
-                                if (labeltable[a] == tmplabel)
-                                {
-                                    labeltable[a] = num;
-                                }
-                            }
-                        }
+                        array2[1] = 6;
                     }
-                    if (datadst[posC] != 0)
+                    else if (pixel_value == 252 && array1[2] == 0)
                     {
-                        if (labeltable[datadst[posC]] != num)
-                        {
-                            for (tmplabel = labeltable[datadst[posC]], a = 1; a < label; a++)
-                            {
-                                if (labeltable[a] == tmplabel)
-                                {
-                                    labeltable[a] = num;
-                                }
-                            }
-                        }
-                    }
-                    if (datadst[posD] != 0)
-                    {
-                        if (labeltable[datadst[posD]] != num)
-                        {
-                            for (tmplabel = labeltable[datadst[posD]], a = 1; a < label; a++)
-                            {
-                                if (labeltable[a] == tmplabel)
-                                {
-                                    labeltable[a] = num;
-                                }
-                            }
-                        }
+                        array1[2] = 100;
                     }
                 }
             }
         }
     }
 
-    // Volta a etiquetar a imagem
-    for (y = 1; y < height - 1; y++)
-    {
-        for (x = 1; x < width - 1; x++)
-        {
-            posX = y * bytesperline + x * channels; // X
+    // Perform the calculations
+    int result = (array1[0] + array2[1]) * array1[2];
 
-            if (datadst[posX] != 0)
-            {
-                datadst[posX] = labeltable[datadst[posX]];
-            }
-        }
-    }
-
-    //printf("\nMax Label = %d\n", label);
-
-    // Contagem do n�mero de blobs
-    // Passo 1: Eliminar, da tabela, etiquetas repetidas
-    for (a = 1; a < label - 1; a++)
-    {
-        for (b = a + 1; b < label; b++)
-        {
-            if (labeltable[a] == labeltable[b]) labeltable[b] = 0;
-        }
-    }
-    // Passo 2: Conta etiquetas e organiza a tabela de etiquetas, para que n�o hajam valores vazios (zero) entre etiquetas
-    if (!*nlabels > 0)
-        *nlabels = 0;
-
-    for (a = 1; a < label; a++)
-    {
-        if (labeltable[a] != 0)
-        {
-            labeltable[*nlabels] = labeltable[a]; // Organiza tabela de etiquetas
-            (*nlabels)++; // Conta etiquetas
-        }
-    }
-
-    // Se n�o h� blobs
-    if (*nlabels == 0) return NULL;
-
-    // Cria lista de blobs (objectos) e preenche a etiqueta
-    blobs = (OVC*)calloc((*nlabels), sizeof(OVC));
-    if (blobs != NULL)
-    {
-        for (a = 0; a < (*nlabels); a++) blobs[a].label = labeltable[a];
-    }
-    else return NULL;
-
-    return blobs;
+    return result;
 }
+

@@ -152,10 +152,16 @@ int main(void) {
 
 		OVC* colorblobs = nullptr; 
 		int ncolorblobs = 0; 
+		int cores[10];
+		int resultado;
 
 		IVC* image6 = vc_image_new(video.width, video.height, 1, 255);
 		colorblobs = vc_binary_blob_labelling(image5, image6, &ncolorblobs);
 		vc_binary_blob_info(image6, colorblobs, ncolorblobs);
+
+		IVC* image7 = vc_image_new(video.width, video.height, 1, 255);
+
+		resultado = vc_color_calculator(image6, image7, &ncolorblobs, &min_x1, &max_x1, &min_y1, &max_y1, cores);
 
 		// Iterate over the blobs and store their information in the array
 		
@@ -170,7 +176,7 @@ int main(void) {
 		RGB_to_BGR(image0);  
 		memcpy(frame.data, image0->data, video.width * video.height * 3); 
 
-		str = std::string("Valor da resistencia: ").append(std::to_string(0));
+		str = std::string("Valor da resistencia: ").append(std::to_string(resultado));
 		cv::putText(frame, str, cv::Point(20, 125), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
 		cv::putText(frame, str, cv::Point(20, 125), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
 		str = std::string("Resistencias: ").append(std::to_string(count)); 
@@ -186,6 +192,8 @@ int main(void) {
 		vc_image_free(image4);
 		vc_image_free(image5);
 		vc_image_free(image6);
+		vc_image_free(image7);
+
 
 
 		//vc_image_free(resistor_labeled); 
