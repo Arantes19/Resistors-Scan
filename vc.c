@@ -761,40 +761,6 @@ int vc_rgb_to_hsv2(IVC* srcdst)
     return 1;
 }
 
-int getMax(int r, int g, int b)
-{
-
-    int valor = 0;
-
-    if (valor < r)
-        valor = r;
-
-    if (valor < g)
-        valor = g;
-
-    if (valor < b)
-        valor = b;
-
-    return valor;
-}
-
-int getMin(int r, int g, int b)
-{
-
-    int valor = 255;
-
-    if (valor > r)
-        valor = r;
-
-    if (valor > g)
-        valor = g;
-
-    if (valor > b)
-        valor = b;
-
-    return valor;
-}
-
 int vc_hsv_segmentation(IVC* src, IVC* dst)
 {
     unsigned char* datasrc = (unsigned char*)src->data;
@@ -828,16 +794,6 @@ int vc_hsv_segmentation(IVC* src, IVC* dst)
             h = ((float)datasrc[pos_src]) / 255.0f * 360.0f;
             s = ((float)datasrc[pos_src + 1]) / 255.0f * 100.0f;
             v = ((float)datasrc[pos_src + 2]) / 255.0f * 100.0f;
-
-
-            /* ISTO ESTAVA DENTRO DO IF EM BAIXO PARA FAZER SEGMENTAÇÃO DAS CORES (VERDE-AZUL-VERMELHO)
-            * ||
-                (h >= 67 && h <= 110 && s >= 25 && s <= 50 && v >= 37 && v <= 50) ||
-                (h >= 115 && h <= 200 && s >= 10 && s <= 43 && v >= 35 && v <= 48) ||
-                (h >= 30 && h <= 100 && s >= 3 && s <= 35 && v >= 22 && v <= 27) 
-            * 
-            */
-
 
             // Check if the pixel falls within the specified HSV range (resistor || green || blue || red)
             if ( ( ( h >= 30 && h <= 45 ) && ( s >= 45 && s <= 65 ) && ( v >= 50 && v <= 90 ) ) )
@@ -1181,175 +1137,6 @@ int vc_binary_close(IVC* src, IVC* dst, int kernelDilate, int kernelErode)
     return 1;
 }
 
-int get_lowest_label(int labels[4]) {
-    int l = 255;
-    for (int i = 0; i < 4; i++) {
-        if (l >= labels[i] && labels[i] > 0) {
-            l = labels[i];
-        }
-    }
-    printf("\n lowest: %d", l);
-    return l;
-}
-
-int vc_gray_lowpass_mean_filter(IVC* src, IVC* dst, int kernel_size) {
-    unsigned char* datasrc = (unsigned char*)src->data;
-    int bytesperline_src = src->width * src->channels;
-    int channels_src = src->channels;
-    unsigned char* datadst = (unsigned char*)dst->data;
-    int bytesperline_dst = dst->width * dst->channels;
-    int channels_dst = dst->channels;
-    int width = src->width;
-    int height = src->height;
-    int x, y;
-    long int pos_src, pos_dst;
-    float rf, gf, bf, pixel;
-
-    for (y = 0; y < height; y++)
-    {
-        for (x = 0; x < width; x++)
-        {
-            pos_src = (y * bytesperline_src) + (x * channels_src);
-            pos_dst = (y * bytesperline_dst) + (x * channels_dst);
-            pixel = (float)datasrc[pos_src];
-            int vmin = 255;
-            int vmax = 0;
-            for (int ky = y - (kernel_size / 2); ky < y + (kernel_size / 2); ++ky)
-            {
-                for (int kx = x - (kernel_size / 2); kx < x + (kernel_size / 2); ++kx)
-                {
-                    if (ky < 0 || ky >= height || kx < 0 || kx >= width)
-                    {
-                        continue;
-                    }
-                    int kpos = (ky * bytesperline_dst) + (kx * channels_dst);
-                    int kpixel = (int)datasrc[kpos];
-                    if (kpixel < vmin)
-                    {
-                        vmin = kpixel;
-                    }
-                    else if (kpixel > vmax)
-                    {
-                        vmax = kpixel;
-                    }
-                }
-            }
-            int t = (vmax + vmin) / 2;
-            if (t < (int)pixel)
-            {
-                datadst[pos_dst] = 1;
-            }
-            else
-            {
-                datadst[pos_dst] = 0;
-            }
-        }
-    }
-
-}
-
-// Desenha a caixa delimitadora de um objecto
-int vc_draw_bounding_box_rgb(IVC* src, IVC* dst, OVC* blobs, int num_blobs, int* min_x, int* max_x, int* min_y, int* max_y)
-{
-    // Validate input
-    if (src->height < 0 || src->width < 0 || (src->levels < 0 || src->levels > 255))
-        return 0;
-    if (src->channels != 1 || dst->channels != 3)
-        return 0;
-
-    int i, x, y;
-    long int posdst;
-
-    int x_min = *min_x; // Get minimum x coordinate value
-    int x_max = *max_x; // Get maximum x coordinate value
-    int y_min = *min_y; // Get minimum y coordinate value
-    int y_max = *max_y; // Get maximum y coordinate value
-
-    // Iterate over all blobs
-    for (i = 0; i < num_blobs; i++)
-    {
-        // Check if the blob is within the specified coordinates and width is at least 10 pixels
-        if (blobs[i].x >= x_min && blobs[i].x + blobs[i].width <= x_max && blobs[i].width >= 11)//max15
-        {
-            // Draw the top and bottom borders of the current blob
-            for (x = blobs[i].x; x < blobs[i].x + blobs[i].width; x++)
-            {
-                // Top border
-                y = y_min;
-                posdst = y * dst->bytesperline + x * dst->channels;
-                dst->data[posdst] = 255;     // Red channel
-                dst->data[posdst + 1] = 255; // Green channel
-                dst->data[posdst + 2] = 255; // Blue channel
-
-                // Bottom border
-                y = y_max;
-                posdst = y * dst->bytesperline + x * dst->channels;
-                dst->data[posdst] = 255;     // Red channel
-                dst->data[posdst + 1] = 255; // Green channel
-                dst->data[posdst + 2] = 255; // Blue channel
-            }
-
-            // Draw the left and right borders of the current blob
-            for (y = y_min; y <= y_max; y++)
-            {
-                // Left border
-                x = blobs[i].x;
-                posdst = y * dst->bytesperline + x * dst->channels;
-                dst->data[posdst] = 255;     // Red channel
-                dst->data[posdst + 1] = 255; // Green channel
-                dst->data[posdst + 2] = 255; // Blue channel
-
-                // Right border
-                x = blobs[i].x + blobs[i].width - 1;
-                posdst = y * dst->bytesperline + x * dst->channels;
-                dst->data[posdst] = 255;     // Red channel
-                dst->data[posdst + 1] = 255; // Green channel
-                dst->data[posdst + 2] = 255; // Blue channel
-            }
-        }
-    }
-
-    return 1; // Return success
-}
-
-
-
-// Desenha o centro de gravidade de um objecto
-int vc_draw_centerofgravity(IVC* srcdst, OVC* blob)
-{
-    int c;
-    int x, y;
-    int xmin, xmax, ymin, ymax;
-    int s = 3;
-
-    xmin = blob->xc - s;
-    ymin = blob->yc - s;
-    xmax = blob->xc + s;
-    ymax = blob->yc + s;
-
-    if (xmin < blob->x) xmin = blob->x;
-    if (ymin < blob->y) ymin = blob->y;
-    if (xmax > blob->x + blob->width - 1) xmax = blob->x + blob->width - 1;
-    if (ymax > blob->y + blob->height - 1) ymax = blob->y + blob->height - 1;
-
-    for (y = ymin; y <= ymax; y++)
-    {
-        for (c = 0; c < srcdst->channels; c++)
-        {
-            srcdst->data[y * srcdst->bytesperline + blob->xc * srcdst->channels] = 255;
-        }
-    }
-
-    for (x = xmin; x <= xmax; x++)
-    {
-        for (c = 0; c < srcdst->channels; c++)
-        {
-            srcdst->data[blob->yc * srcdst->bytesperline + x * srcdst->channels] = 255;
-        }
-    }
-
-    return 1;
-}
 
 // Etiquetagem de blobs
 // src		: Imagem bin�ria de entrada
@@ -1629,24 +1416,7 @@ int vc_binary_blob_info(IVC* src, OVC* blobs, int nblobs)
     return 1;
 }
 
-OVC* vc_get_biggest_blob(OVC* blobs, int nblobs)
-{
-    OVC* ovc_to_return = NULL;
-    for (int i = 0; i < nblobs; i++)
-    {
-        if (ovc_to_return == NULL) {
-            ovc_to_return = &blobs[i];
-            continue;
-        }
-        if (ovc_to_return->area < blobs[i].area)
-        {
-            ovc_to_return = &blobs[i];
-        }
-    }
-    return ovc_to_return;
-}
-
-int RGB_to_BGR(IVC* src)
+int rgb_to_bgr(IVC* src)
 {
     unsigned char* data = (unsigned char*)src->data;
     int width = src->width;
@@ -1674,18 +1444,27 @@ int RGB_to_BGR(IVC* src)
     return 1;
 }
 
-// Função para desenhar a bounding box do resistor
-int DRAW_RESISTOR_BOX_1(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height, int* min_x, int* max_x, int* min_y, int* max_y)
+// Function to draw the bounding box of a resistor 
+int draw_resistor_box_1(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height, int* min_x, int* max_x, int* min_y, int* max_y)
 {
+    // Pointers to the source and destination image data
     unsigned char* datasrc = (unsigned char*)src->data;
     unsigned char* datadst = (unsigned char*)dst->data;
+
+    // Image dimensions and properties
     int width_src = src->width;
     int height_src = src->height;
     int bytesperline_dst = dst->bytesperline;
     int channels_src = src->channels;
     int channels_dst = dst->channels;
+
+    // Variables for pixel positions
     long int pos_dst, pos_1, pos_2, pos_3, pos_4, pos_5;
-    int total_area = 0; // Variable to store the total area of the blobs
+
+    // Variable to store the total area of the blobs
+    int total_area = 0;
+
+    // Static variables for maintaining state across function calls
     static int count = 0;
     static int previous_crossed = 0; // Flag to determine if the center of mass has crossed the row
 
@@ -1700,6 +1479,7 @@ int DRAW_RESISTOR_BOX_1(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
     *max_x = 0;
     *max_y = 0;
 
+    // Iterate through detected blobs to calculate total area and update bounding box coordinates
     for (int i = 0; i < labels; i++)
     {
         if (blobs[i].y <= height_src * 0.3)
@@ -1761,53 +1541,56 @@ int DRAW_RESISTOR_BOX_1(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
             pos_4 = (aux_y - 1) * bytesperline_dst + aux_x * channels_dst;
             pos_5 = aux_y * bytesperline_dst + (aux_x - 1) * channels_dst;
 
-            datadst[pos_1] = 255; // Red for the box
+            // Draw the border pixels in red
+            datadst[pos_1] = 255;
             datadst[pos_1 + 1] = 0;
             datadst[pos_1 + 2] = 0;
 
-            datadst[pos_2] = 255; // Red for the box
+            datadst[pos_2] = 255;
             datadst[pos_2 + 1] = 0;
             datadst[pos_2 + 2] = 0;
 
-            datadst[pos_3] = 255; // Red for the box
+            datadst[pos_3] = 255;
             datadst[pos_3 + 1] = 0;
             datadst[pos_3 + 2] = 0;
 
-            datadst[pos_4] = 255; // Red for the box
+            datadst[pos_4] = 255;
             datadst[pos_4 + 1] = 0;
             datadst[pos_4 + 2] = 0;
 
-            datadst[pos_5] = 255; // Red for the box
+            datadst[pos_5] = 255;
             datadst[pos_5 + 1] = 0;
             datadst[pos_5 + 2] = 0;
         }
 
-        printf("Resis1 %d: x - %d, y - %d\n", count, center_x, center_y); 
+        // Print the centroid coordinates of the bounding box along with the resistor count
+        printf("Resistor %d: x - %d, y - %d\n", count, center_x, center_y);
     }
 
-
+    // Return the count of detected resistors
     return count;
 }
 
-
-// Função para desenhar a bounding box do resistor
-int DRAW_RESISTOR_BOX_2(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height, int* min_x, int* max_x, int* min_y, int* max_y, int value)
+// Function to draw the bounding box of a resistor
+int draw_resistor_box_2(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height, int* min_x, int* max_x, int* min_y, int* max_y, int value)
 {
-    unsigned char* datasrc = (unsigned char*)src->data;
-    unsigned char* datadst = (unsigned char*)dst->data;
+    unsigned char* datasrc = (unsigned char*)src->data; // Pointer to source image data
+    unsigned char* datadst = (unsigned char*)dst->data; // Pointer to destination image data
+
     int width_src = src->width;
-    int height_src = src->height;
-    int bytesperline_dst = dst->bytesperline;
-    int channels_src = src->channels;
-    int channels_dst = dst->channels;
-    long int pos_dst, pos_1, pos_2, pos_3, pos_4, pos_5;
-    int aux_x, aux_y;
+    int height_src = src->height; 
+    int bytesperline_dst = dst->bytesperline; 
+    int channels_src = src->channels; 
+    int channels_dst = dst->channels; 
+
+    long int pos_dst, pos_1, pos_2, pos_3, pos_4, pos_5; // Position variables for drawing
+    int aux_x, aux_y; // Auxiliary variables for center coordinates
     int total_area = 0; // Variable to store the total area of the blobs
 
     // Error checks
-    if ((width_src <= 0) || (height_src <= 0) || (datasrc == NULL)) return 0;
-    if (channels_src != 1) return 0;
-    if (labels <= 0 || blobs == NULL) return 0;
+    if ((width_src <= 0) || (height_src <= 0) || (datasrc == NULL)) return 0; 
+    if (channels_src != 1) return 0; 
+    if (labels <= 0 || blobs == NULL) return 0; 
 
     // Initialize the minimum and maximum limits
     *min_x = width_src;
@@ -1820,10 +1603,10 @@ int DRAW_RESISTOR_BOX_2(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
     {
         if ((blobs[i].y >= height_src * 0.3) && (blobs[i].y <= height_src * 0.65))
         {
-            if (blobs[i].x < *min_x) *min_x = blobs[i].x;
-            if (blobs[i].y < *min_y) *min_y = blobs[i].y;
-            if (blobs[i].x + blobs[i].width > *max_x) *max_x = blobs[i].x + blobs[i].width;
-            if (blobs[i].y + blobs[i].height > *max_y) *max_y = blobs[i].y + blobs[i].height;
+            if (blobs[i].x < *min_x) *min_x = blobs[i].x; // Update minimum x
+            if (blobs[i].y < *min_y) *min_y = blobs[i].y; // Update minimum y
+            if (blobs[i].x + blobs[i].width > *max_x) *max_x = blobs[i].x + blobs[i].width; // Update maximum x
+            if (blobs[i].y + blobs[i].height > *max_y) *max_y = blobs[i].y + blobs[i].height; // Update maximum y
 
             // Calculate the area of the current blob and add it to the total area
             int blob_area = blobs[i].width * blobs[i].height;
@@ -1834,15 +1617,15 @@ int DRAW_RESISTOR_BOX_2(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
     // Only draw the bounding box if the total area is within the specified range
     if (total_area > 600 && total_area < 10000)
     {
-        int center_x = (*min_x + *max_x) / 2;
-        int center_y = (*min_y + *max_y) / 2;
+        int center_x = (*min_x + *max_x) / 2; // Calculate the center x-coordinate of the bounding box
+        int center_y = (*min_y + *max_y) / 2; // Calculate the center y-coordinate of the bounding box
 
         // Draw the bounding box around all the blobs
         for (int y = *min_y; y < *max_y; y++)
         {
             for (int x = *min_x; x < *max_x; x++)
             {
-                pos_dst = y * bytesperline_dst + x * channels_dst;
+                pos_dst = y * bytesperline_dst + x * channels_dst; // Calculate the position in the destination image
                 if (x == *min_x || x == *max_x - 1 || y == *min_y || y == *max_y - 1)
                 {
                     datadst[pos_dst] = 0;       // Red channel
@@ -1855,8 +1638,8 @@ int DRAW_RESISTOR_BOX_2(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
         // Draw the center cross only if any blob satisfies the y condition
         if ((*min_y < height_src) && (*max_y > 0))
         {
-            aux_x = *min_x + (*max_x - *min_x) / 2;
-            aux_y = *min_y + (*max_y - *min_y) / 2;
+            aux_x = *min_x + (*max_x - *min_x) / 2; // Calculate auxiliary x-coordinate for the center
+            aux_y = *min_y + (*max_y - *min_y) / 2; // Calculate auxiliary y-coordinate for the center
 
             pos_1 = aux_y * bytesperline_dst + aux_x * channels_dst;
             pos_2 = (aux_y + 1) * bytesperline_dst + aux_x * channels_dst;
@@ -1864,6 +1647,7 @@ int DRAW_RESISTOR_BOX_2(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
             pos_4 = (aux_y - 1) * bytesperline_dst + aux_x * channels_dst;
             pos_5 = aux_y * bytesperline_dst + (aux_x - 1) * channels_dst;
 
+            // Set the pixels for the center cross to black
             datadst[pos_1] = 0;
             datadst[pos_1 + 1] = 0;
             datadst[pos_1 + 2] = 0;
@@ -1883,31 +1667,30 @@ int DRAW_RESISTOR_BOX_2(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
             datadst[pos_5] = 0;
             datadst[pos_5 + 1] = 0;
             datadst[pos_5 + 2] = 0;
-
         }
-        printf("Resis1 %d: x - %d, y - %d\n", value, center_x, center_y);
+        printf("Resistor %d: x - %d, y - %d\n", value, center_x, center_y); // Print the center coordinates
     }
     return 1;
 }
 
-// Função para desenhar a bounding box do resistor
-int DRAW_RESISTOR_BOX_3(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height, int* min_x, int* max_x, int* min_y, int* max_y, int value)
+// Function to draw the bounding box of a resistor
+int draw_resistor_box_3(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height, int* min_x, int* max_x, int* min_y, int* max_y, int value)
 {
-    unsigned char* datasrc = (unsigned char*)src->data;
-    unsigned char* datadst = (unsigned char*)dst->data;
-    int width_src = src->width;
-    int height_src = src->height;
-    int bytesperline_dst = dst->bytesperline;
-    int channels_src = src->channels;
-    int channels_dst = dst->channels;
-    long int pos_dst, pos_1, pos_2, pos_3, pos_4, pos_5;
-    int aux_x, aux_y;
+    unsigned char* datasrc = (unsigned char*)src->data; // Pointer to source image data
+    unsigned char* datadst = (unsigned char*)dst->data; // Pointer to destination image data
+    int width_src = src->width; // Width of the source image
+    int height_src = src->height; // Height of the source image
+    int bytesperline_dst = dst->bytesperline; // Bytes per line in the destination image
+    int channels_src = src->channels; // Number of channels in the source image
+    int channels_dst = dst->channels; // Number of channels in the destination image
+    long int pos_dst, pos_1, pos_2, pos_3, pos_4, pos_5; // Position variables for destination image
+    int aux_x, aux_y; // Auxiliary variables for x and y coordinates
     int total_area = 0; // Variable to store the total area of the blobs
 
     // Error checks
-    if ((width_src <= 0) || (height_src <= 0) || (datasrc == NULL)) return 0;
-    if (channels_src != 1) return 0;
-    if (labels <= 0 || blobs == NULL) return 0;
+    if ((width_src <= 0) || (height_src <= 0) || (datasrc == NULL)) return 0; // Check for invalid source image
+    if (channels_src != 1) return 0; // Check for invalid source image channels
+    if (labels <= 0 || blobs == NULL) return 0; // Check for invalid blob labels
 
     // Initialize the minimum and maximum limits
     *min_x = width_src;
@@ -1934,8 +1717,8 @@ int DRAW_RESISTOR_BOX_3(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
     // Only draw the bounding box if the total area is within the specified range
     if (total_area > 600 && total_area < 10000)
     {
-        int center_x = (*min_x + *max_x) / 2;
-        int center_y = (*min_y + *max_y) / 2;
+        int center_x = (*min_x + *max_x) / 2; // Calculate the x coordinate of the center
+        int center_y = (*min_y + *max_y) / 2; // Calculate the y coordinate of the center
 
         // Draw the bounding box around all the blobs
         for (int y = *min_y; y < *max_y; y++)
@@ -1956,15 +1739,17 @@ int DRAW_RESISTOR_BOX_3(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
         // Draw the center cross only if any blob satisfies the y condition
         if ((*min_y < height_src) && (*max_y > 0))
         {
-            aux_x = *min_x + (*max_x - *min_x) / 2;
-            aux_y = *min_y + (*max_y - *min_y) / 2;
+            aux_x = *min_x + (*max_x - *min_x) / 2; // Calculate the x coordinate of the center
+            aux_y = *min_y + (*max_y - *min_y) / 2; // Calculate the y coordinate of the center
 
+            // Calculate positions for drawing the cross
             pos_1 = aux_y * bytesperline_dst + aux_x * channels_dst;
             pos_2 = (aux_y + 1) * bytesperline_dst + aux_x * channels_dst;
             pos_3 = aux_y * bytesperline_dst + (aux_x + 1) * channels_dst;
             pos_4 = (aux_y - 1) * bytesperline_dst + aux_x * channels_dst;
             pos_5 = aux_y * bytesperline_dst + (aux_x - 1) * channels_dst;
 
+            // Draw the cross
             datadst[pos_1] = 0;
             datadst[pos_1 + 1] = 0;
             datadst[pos_1 + 2] = 0;
@@ -1984,28 +1769,31 @@ int DRAW_RESISTOR_BOX_3(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
             datadst[pos_5] = 0;
             datadst[pos_5 + 1] = 0;
             datadst[pos_5 + 2] = 0;
-
         }
-        printf("Resis1 %d: x - %d, y - %d\n", value, center_x, center_y);
+        // Print the center coordinates of the bounding box
+        printf("Resistor %d: x - %d, y - %d\n", value, center_x, center_y);
     }
-    return 1;
+    return 1; // Return success
 }
+
 
 int vc_color_segmentation(IVC* src, IVC* dst, int max_y, int min_y, int max_x, int min_x)
 {
-    unsigned char* datasrc = (unsigned char*)src->data;
-    int byterperline_src = src->width * src->channels;
-    int channels_src = src->channels;
-    unsigned char* datadst = (unsigned char*)dst->data;
-    int bytesperline_dst = dst->width * dst->channels;
-    int channels_dst = dst->channels;
-    int width = src->width;
-    int height = src->height;
-    int x, y;
-    long int pos_src, pos_dst;
-    float h, s, v;
-    
+    unsigned char* datasrc = (unsigned char*)src->data; // Pointer to source image data
+    int byterperline_src = src->width * src->channels; // Bytes per line in the source image
 
+    int channels_src = src->channels; 
+    unsigned char* datadst = (unsigned char*)dst->data; 
+    int bytesperline_dst = dst->width * dst->channels; 
+    int channels_dst = dst->channels; 
+    int width = src->width; 
+    int height = src->height; 
+
+    int x, y; 
+    long int pos_src, pos_dst;
+    float h, s, v; 
+
+    // Validate input images
     if (src->width <= 0 || src->height <= 0 || src->data == NULL)
         return 0;
     if (src->width != dst->width || src->height != dst->height)
@@ -2018,132 +1806,72 @@ int vc_color_segmentation(IVC* src, IVC* dst, int max_y, int min_y, int max_x, i
     {
         for (x = min_x; x < max_x; x++)
         {
+            // Calculate the position in the source and destination images
             pos_src = y * byterperline_src + x * channels_src;
             pos_dst = y * bytesperline_dst + x * channels_dst;
 
+            // Extract HSV values directly from the source image
+            h = ((float)datasrc[pos_src]) / 255.0f * 360.0f; // Hue
+            s = ((float)datasrc[pos_src + 1]) / 255.0f * 100.0f; // Saturation
+            v = ((float)datasrc[pos_src + 2]) / 255.0f * 100.0f; // Value
 
-            // Extract HSV values directly from the src image
-            h = ((float)datasrc[pos_src]) / 255.0f * 360.0f;
-            s = ((float)datasrc[pos_src + 1]) / 255.0f * 100.0f;
-            v = ((float)datasrc[pos_src + 2]) / 255.0f * 100.0f;
-
-            if (h >= 52 && h <= 103 && s >= 30 && s <= 50 && v >= 38 && v <= 63)        // Verde
+            // Check if the pixel falls within the specified ranges for different colors
+            if (h >= 52 && h <= 103 && s >= 30 && s <= 50 && v >= 38 && v <= 63) // Green
             {
-                datadst[pos_dst] = 254; 
+                datadst[pos_dst] = 254;
             }
-            else if (h >= 127 && h <= 203 && s >= 11 && s <= 39 && v >= 35 && v <= 42)  // Azul
+            else if (h >= 127 && h <= 203 && s >= 11 && s <= 39 && v >= 35 && v <= 42) // Blue
             {
-                datadst[pos_dst] = 253; 
+                datadst[pos_dst] = 253;
             }
-            else if (h >= 0 && h <= 15 && s >= 40 && s <= 70 && v >= 60 && v <= 80)     // Vermelho
+            else if (h >= 0 && h <= 15 && s >= 40 && s <= 70 && v >= 60 && v <= 80) // Red
             {
-                datadst[pos_dst] = 252; 
+                datadst[pos_dst] = 252;
             }
-            else if (h >= 5 && h <= 18 && s >= 62 && s <= 80 && v >= 77 && v <= 94)     // Laranja
+            else if (h >= 5 && h <= 18 && s >= 62 && s <= 80 && v >= 77 && v <= 94) // Orange
             {
-                datadst[pos_dst] = 251; 
+                datadst[pos_dst] = 251;
             }
-            else if (h >= 31 && h <= 80 && s >= 10 && s <= 36 && v >= 24 && v <= 42)    // Preto
+            else if (h >= 31 && h <= 80 && s >= 10 && s <= 36 && v >= 24 && v <= 42) // Black
             {
-                datadst[pos_dst] = 250; 
+                datadst[pos_dst] = 250;
             }
-            else if (h >= 2 && h <= 36 && s >= 23 && s <= 57 && v >= 33 && v <= 50)     // Castanho
+            else if (h >= 2 && h <= 36 && s >= 23 && s <= 57 && v >= 33 && v <= 50) // Brown
             {
-                datadst[pos_dst] = 249; 
+                datadst[pos_dst] = 249;
             }
-            else
+            else // If the pixel is outside all specified ranges, mark as black
             {
-                datadst[pos_dst] = 0; // Pixel is outside all ranges, mark as black
+                datadst[pos_dst] = 0;
             }
         }
     }
 
-    return 1; // Success
-}
-
-
-int DRAW_Color_box1(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height, int* min_x, int* max_x, int* min_y, int* max_y)
-{
-    unsigned char* datasrc = (unsigned char*)src->data;
-    unsigned char* datadst = (unsigned char*)dst->data;
-    int width_src = src->width;
-    int height_src = src->height;
-    int bytesperline_dst = dst->bytesperline;
-    int channels_src = src->channels;
-    int channels_dst = dst->channels;
-    long int pos_dst, pos_1, pos_2, pos_3, pos_4, pos_5;
-    int aux_x, aux_y;
-    int total_area = 0; // Variable to store the total area of the blobs
-
-    // Error checks
-    if ((width_src <= 0) || (height_src <= 0) || (datasrc == NULL)) return 0;
-    if (channels_src != 1) return 0;
-    if (labels <= 0 || blobs == NULL) return 0;
-
-    // Initialize the minimum and maximum limits
-    *min_x = width_src;
-    *min_y = height_src;
-    *max_x = 0;
-    *max_y = 0;
-
-    // Find the bounding box that includes all blobs within the specified y range
-    for (int i = 0; i < labels; i++)
-    {
-        if ((blobs[i].y <= height_src * 0.3))
-        {
-            if (blobs[i].x < *min_x) *min_x = blobs[i].x;
-            if (blobs[i].y < *min_y) *min_y = blobs[i].y;
-            if (blobs[i].x + blobs[i].width > *max_x) *max_x = blobs[i].x + blobs[i].width;
-            if (blobs[i].y + blobs[i].height > *max_y) *max_y = blobs[i].y + blobs[i].height;
-
-            // Calculate the area of the current blob and add it to the total area
-            int blob_area = blobs[i].width * blobs[i].height;
-            total_area += blob_area;
-        }
-    }
-
-    // Only draw the bounding box if the total area is within the specified range
-   
-        // Draw the bounding box around all the blobs
-        for (int y = *min_y; y < *max_y; y++)
-        {
-            for (int x = *min_x; x < *max_x; x++)
-            {
-                pos_dst = y * bytesperline_dst + x * channels_dst;
-                if (x == *min_x || x == *max_x - 1 || y == *min_y || y == *max_y - 1)
-                {
-                    datadst[pos_dst] = 0;       // Red channel
-                    datadst[pos_dst + 1] = 0;   // Green channel
-                    datadst[pos_dst + 2] = 0;   // Blue channel
-                }
-            }
-        }
-
-    return 1;
+    return 1; // Return 1 to indicate successful completion
 }
 
 
 int vc_color_calculator(IVC* src, IVC* dst, int* nlabels, int* min_x, int* max_x, int* min_y, int* max_y, int scenario)
 {
-    unsigned char* datasrc = (unsigned char*)src->data;
-    unsigned char* datadst = (unsigned char*)dst->data;
-    int width_src = src->width;
-    int height_src = src->height;
-    int bytesperline_dst = dst->bytesperline;
-    int channels_src = src->channels;
-    int channels_dst = dst->channels;
-    long int pos_dst;
-    int aux_y;
+    unsigned char* datasrc = (unsigned char*)src->data; // Pointer to source image data
+    unsigned char* datadst = (unsigned char*)dst->data; // Pointer to destination image data
+    int width_src = src->width; // Width of the source image
+    int height_src = src->height; // Height of the source image
+    int bytesperline_dst = dst->bytesperline; // Bytes per line in the destination image
+    int channels_src = src->channels; // Number of channels in the source image
+    int channels_dst = dst->channels; // Number of channels in the destination image
+    long int pos_dst; // Position variable for destination image
+    int aux_y; // Auxiliary variable for y coordinate
 
-    int array2[10] = { 0 }; // Array to store values for the second condition
-    int resis1 = 0; // Initialize resis1 to handle the second set of conditions
+    int array2[10] = { 0 }; // Array to store values for calculation
+    int resis1 = 0; // Variable to handle additional conditions
 
-    // Verificação de erros
+    // Errors Check
     if ((src->width <= 0) || (src->height <= 0) || (src->data == NULL)) return 0;
     if ((src->width != dst->width) || (src->height != dst->height) || (src->channels != dst->channels)) return 0;
     if (channels_dst != 1) return 0;
 
-    // Copia dados da imagem binária para imagem grayscale
+    // Copy binary image into a gray one 
     memcpy(datadst, datasrc, bytesperline_dst * height_src);
 
     // Draw the bounding box around all the blobs
@@ -2161,20 +1889,20 @@ int vc_color_calculator(IVC* src, IVC* dst, int* nlabels, int* min_x, int* max_x
 
                 if (scenario == 1)
                 {
-                    // First set of conditions
+                    // Handle different pixel values and update array2 accordingly
                     if (pixel_value >= 249 && pixel_value <= 254)
                     {
-                        if (pixel_value == 254 && !valuefound)
+                        if (pixel_value == 254 && !valuefound) //Green
                         {
                             array2[0] = 5;
                             valuefound = true;
                         }
-                        else if (pixel_value == 253 && !valuefound)
+                        else if (pixel_value == 253 && !valuefound) //Blue
                         {
                             array2[1] = 6;
                             valuefound = true;
                         }
-                        else if (pixel_value == 252 && !valuefound)
+                        else if (pixel_value == 252 && !valuefound) //Red
                         {
                             array2[2] = 100;
                             valuefound = true;
@@ -2183,19 +1911,18 @@ int vc_color_calculator(IVC* src, IVC* dst, int* nlabels, int* min_x, int* max_x
                 }
                 else if (scenario == 2)
                 {
-                    // Second set of conditions
-                    if (pixel_value == 252 && !valuefound && resis1 == 0)
+                    if (pixel_value == 252 && !valuefound && resis1 == 0) //Red
                     {
                         array2[0] = 2;
                         valuefound = true;
                         resis1 = 1;
                     }
-                    else if (pixel_value == 252 && !valuefound && resis1 == 1)
+                    else if (pixel_value == 252 && !valuefound && resis1 == 1) //Red
                     {
                         array2[1] = 2;
                         valuefound = true;
                     }
-                    else if (pixel_value == 249 && !valuefound)
+                    else if (pixel_value == 249 && !valuefound) //Brown
                     {
                         array2[2] = 10;
                         valuefound = true;
@@ -2203,18 +1930,17 @@ int vc_color_calculator(IVC* src, IVC* dst, int* nlabels, int* min_x, int* max_x
                 }
                 else if (scenario == 3)
                 {
-                    // Second set of conditions
-                    if (pixel_value == 249 && !valuefound)
+                    if (pixel_value == 249 && !valuefound) //Brown
                     {
                         array2[0] = 1;
                         valuefound = true;
                     }
-                    else if (pixel_value == 250 && !valuefound)
+                    else if (pixel_value == 250 && !valuefound) //Black
                     {
                         array2[1] = 0;
                         valuefound = true;
                     }
-                    else if (pixel_value == 252 && !valuefound)
+                    else if (pixel_value == 252 && !valuefound) //Red
                     {
                         array2[2] = 100;
                         valuefound = true;
@@ -2222,20 +1948,19 @@ int vc_color_calculator(IVC* src, IVC* dst, int* nlabels, int* min_x, int* max_x
                 }
                 else if (scenario == 4)
                 {
-                    // Second set of conditions
-                    if (pixel_value == 252 && !valuefound && resis1 == 0)
+                    if (pixel_value == 252 && !valuefound && resis1 == 0) //Red
                     {
                         array2[0] = 2;
                         valuefound = true;
                         resis1 = 1;
                     }
-                    else if (pixel_value == 252 && !valuefound && resis1 == 1)
+                    else if (pixel_value == 252 && !valuefound && resis1 == 1) //Red
                     {
                         array2[1] = 2;
                         valuefound = true;
                         resis1 = 2;
                     }
-                    else if (pixel_value == 252 && !valuefound && resis1 == 2)
+                    else if (pixel_value == 252 && !valuefound && resis1 == 2) //Red
                     {
                         array2[2] = 100;
                         valuefound = true;
@@ -2243,18 +1968,17 @@ int vc_color_calculator(IVC* src, IVC* dst, int* nlabels, int* min_x, int* max_x
                 }
                 else if (scenario == 5)
                 {
-                    // Second set of conditions
-                    if (pixel_value == 249 && !valuefound)
+                    if (pixel_value == 249 && !valuefound) //Brown
                     {
                         array2[0] = 1;
                         valuefound = true;
                     }
-                    else if (pixel_value == 250 && !valuefound)
+                    else if (pixel_value == 250 && !valuefound) //Black
                     {
                         array2[1] = 0;
                         valuefound = true;
                     }
-                    else if (pixel_value == 251 && !valuefound)
+                    else if (pixel_value == 251 && !valuefound) //Orange
                     {
                         array2[2] = 1000;
                         valuefound = true;
@@ -2262,18 +1986,17 @@ int vc_color_calculator(IVC* src, IVC* dst, int* nlabels, int* min_x, int* max_x
                 }
                 else if (scenario == 6)
                 {
-                    // Second set of conditions
-                    if (pixel_value == 249 && !valuefound)
+                    if (pixel_value == 249 && !valuefound) //Brown
                     {
                         array2[0] = 1;
                         valuefound = true;
                     }
-                    else if (pixel_value == 250 && !valuefound)
+                    else if (pixel_value == 250 && !valuefound) //Black
                     {
                         array2[1] = 0;
                         valuefound = true;
                     }
-                    else if (pixel_value == 252 && !valuefound)
+                    else if (pixel_value == 252 && !valuefound) //Red
                     {
                         array2[2] = 100;
                         valuefound = true;
@@ -2296,8 +2019,7 @@ int vc_color_calculator(IVC* src, IVC* dst, int* nlabels, int* min_x, int* max_x
     // Convert concatenated string back to integer
     int concatenated_value = atoi(concatenated_str);
 
-    // Perform the calculations
-    int result = concatenated_value * array2[2];
+    int result = concatenated_value * array2[2]; // Final result calculation
 
     return result;
 }
