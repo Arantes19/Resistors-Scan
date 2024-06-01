@@ -70,7 +70,7 @@ int get_lowest_label(int labels[4]);
 int vc_gray_lowpass_mean_filter(IVC* src, IVC* dst, int kernel_size);
 
 int vc_draw_centerofgravity(IVC* srcdst, OVC* blob);
-int vc_draw_boundingbox(IVC* srcdst, OVC* blob);
+int vc_draw_bounding_box_rgb(IVC* src, IVC* dst, OVC* blobs, int num_blobs, int* min_x, int* max_x, int* min_y, int* max_y);
 OVC* vc_binary_blob_labelling(IVC* src, IVC* dst, int* nlabels);
 int vc_binary_blob_info(IVC* src, OVC* blobs, int nblobs);
 OVC* vc_get_biggest_blob(OVC* blobs, int nblobs);
@@ -80,7 +80,8 @@ int DRAW_RESISTOR_BOX_1(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
 int DRAW_RESISTOR_BOX_2(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height, int* min_x, int* main_y, int* max_x, int* max_y);
 int DRAW_RESISTOR_BOX_3(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height, int* min_x, int* main_y, int* max_x, int* max_y);
 int vc_color_segmentation(IVC* src, IVC* dst, int max_y, int min_y, int max_x, int min_x);
-;
+int DRAW_Color_box1(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height, int* min_x, int* max_x, int* min_y, int* max_y);
+
 
 
 //OVC* vc_get_blobs_bigger_than(OVC* blobs, int* nblobs, int area);

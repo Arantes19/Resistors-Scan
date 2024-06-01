@@ -157,6 +157,8 @@ int main(void) {
 		colorblobs = vc_binary_blob_labelling(image5, image6, &ncolorblobs);
 		vc_binary_blob_info(image6, colorblobs, ncolorblobs);
 
+		// Iterate over the blobs and store their information in the array
+		
 
 		// Convert the binary image to color for visualization
 		cv::Mat seg_frame(video.height, video.width, CV_8UC1, image5->data);
