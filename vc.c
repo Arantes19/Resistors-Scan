@@ -2112,7 +2112,7 @@ int DRAW_Color_box1(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width,
 }
 
 
-int vc_color_calculator(IVC* src, IVC* dst, int* nlabels, int* min_x, int* max_x, int* min_y, int* max_y, int* cores)
+int vc_color_calculator(IVC* src, IVC* dst, int* nlabels, int* min_x, int* max_x, int* min_y, int* max_y)
 {
     unsigned char* datasrc = (unsigned char*)src->data;
     unsigned char* datadst = (unsigned char*)dst->data;
@@ -2124,15 +2124,14 @@ int vc_color_calculator(IVC* src, IVC* dst, int* nlabels, int* min_x, int* max_x
     long int pos_dst;
     int aux_y;
 
-    int array1[10] = { 0 }; // Array to store values for the first condition
     int array2[10] = { 0 }; // Array to store values for the second condition
 
-    // Verifica��o de erros
+    // Verificação de erros
     if ((src->width <= 0) || (src->height <= 0) || (src->data == NULL)) return 0;
-    if ((src->width != dst->width) || (src->height != dst->height) || (src->channels != dst->channels)) return NULL;
-    if (channels_dst != 1) return NULL;
+    if ((src->width != dst->width) || (src->height != dst->height) || (src->channels != dst->channels)) return 0;
+    if (channels_dst != 1) return 0;
 
-    // Copia dados da imagem bin�ria para imagem grayscale
+    // Copia dados da imagem binária para imagem grayscale
     memcpy(datadst, datasrc, bytesperline_dst * height_src);
 
     // Draw the bounding box around all the blobs
@@ -2143,32 +2142,50 @@ int vc_color_calculator(IVC* src, IVC* dst, int* nlabels, int* min_x, int* max_x
             pos_dst = y * bytesperline_dst + x * channels_dst;
 
             aux_y = *min_y + (*max_y - *min_y) / 2;
+            bool valuefound = false;
 
             if (y == aux_y)
             {
                 int pixel_value = datadst[pos_dst];
+                // printf("%d\n", pixel_value);
                 if (pixel_value >= 249 && pixel_value <= 254)
                 {
-                    if (pixel_value == 254 && array1[0] == 0)
+                    if (pixel_value == 254 && !valuefound)
                     {
-                        array1[0] = 5;
+                        array2[0] = 5;
+                        valuefound = true;
                     }
-                    else if (pixel_value == 253 && array2[1] == 0)
+                    else if (pixel_value == 253 && !valuefound)
                     {
                         array2[1] = 6;
+                        valuefound = true;
                     }
-                    else if (pixel_value == 252 && array1[2] == 0)
+                    else if (pixel_value == 252 && !valuefound)
                     {
-                        array1[2] = 100;
+                        array2[2] = 100;
+                        valuefound = true;
                     }
                 }
             }
         }
     }
 
+    // Concatenate array2[0] and array2[1] as strings
+    char str1[12]; // To store the string representation of array2[0]
+    char str2[12]; // To store the string representation of array2[1]
+    sprintf(str1, "%d", array2[0]);
+    sprintf(str2, "%d", array2[1]);
+
+    char concatenated_str[24]; // To store the concatenated string
+    strcpy(concatenated_str, str1);
+    strcat(concatenated_str, str2);
+
+    // Convert concatenated string back to integer
+    int concatenated_value = atoi(concatenated_str);
+
     // Perform the calculations
-    int result = (array1[0] + array2[1]) * array1[2];
+    int result = concatenated_value * array2[2];
+    printf("%d\n", result);
 
     return result;
 }
-

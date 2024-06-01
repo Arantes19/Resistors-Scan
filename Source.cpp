@@ -161,7 +161,7 @@ int main(void) {
 
 		IVC* image7 = vc_image_new(video.width, video.height, 1, 255);
 
-		resultado = vc_color_calculator(image6, image7, &ncolorblobs, &min_x1, &max_x1, &min_y1, &max_y1, cores);
+		resultado = vc_color_calculator(image5, image7, &ncolorblobs, &min_x1, &max_x1, &min_y1, &max_y1);
 
 		// Iterate over the blobs and store their information in the array
 		
