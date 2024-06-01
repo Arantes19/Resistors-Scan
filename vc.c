@@ -1781,14 +1781,17 @@ int DRAW_RESISTOR_BOX_1(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
             datadst[pos_5 + 1] = 0;
             datadst[pos_5 + 2] = 0;
         }
+
+        printf("Resis1 %d: x - %d, y - %d\n", count, center_x, center_y); 
     }
+
 
     return count;
 }
 
 
 // Função para desenhar a bounding box do resistor
-int DRAW_RESISTOR_BOX_2(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height, int* min_x, int* max_x, int* min_y, int* max_y)
+int DRAW_RESISTOR_BOX_2(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height, int* min_x, int* max_x, int* min_y, int* max_y, int value)
 {
     unsigned char* datasrc = (unsigned char*)src->data;
     unsigned char* datadst = (unsigned char*)dst->data;
@@ -1831,6 +1834,9 @@ int DRAW_RESISTOR_BOX_2(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
     // Only draw the bounding box if the total area is within the specified range
     if (total_area > 600 && total_area < 10000)
     {
+        int center_x = (*min_x + *max_x) / 2;
+        int center_y = (*min_y + *max_y) / 2;
+
         // Draw the bounding box around all the blobs
         for (int y = *min_y; y < *max_y; y++)
         {
@@ -1879,12 +1885,13 @@ int DRAW_RESISTOR_BOX_2(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
             datadst[pos_5 + 2] = 0;
 
         }
+        printf("Resis1 %d: x - %d, y - %d\n", value, center_x, center_y);
     }
     return 1;
 }
 
 // Função para desenhar a bounding box do resistor
-int DRAW_RESISTOR_BOX_3(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height, int* min_x, int* max_x, int* min_y, int* max_y)
+int DRAW_RESISTOR_BOX_3(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width, int video_height, int* min_x, int* max_x, int* min_y, int* max_y, int value)
 {
     unsigned char* datasrc = (unsigned char*)src->data;
     unsigned char* datadst = (unsigned char*)dst->data;
@@ -1927,6 +1934,9 @@ int DRAW_RESISTOR_BOX_3(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
     // Only draw the bounding box if the total area is within the specified range
     if (total_area > 600 && total_area < 10000)
     {
+        int center_x = (*min_x + *max_x) / 2;
+        int center_y = (*min_y + *max_y) / 2;
+
         // Draw the bounding box around all the blobs
         for (int y = *min_y; y < *max_y; y++)
         {
@@ -1976,6 +1986,7 @@ int DRAW_RESISTOR_BOX_3(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
             datadst[pos_5 + 2] = 0;
 
         }
+        printf("Resis1 %d: x - %d, y - %d\n", value, center_x, center_y);
     }
     return 1;
 }
@@ -2038,7 +2049,7 @@ int vc_color_segmentation(IVC* src, IVC* dst, int max_y, int min_y, int max_x, i
             }
             else if (h >= 2 && h <= 36 && s >= 23 && s <= 57 && v >= 33 && v <= 50)     // Castanho
             {
-                datadst[pos_dst] = 240; 
+                datadst[pos_dst] = 249; 
             }
             else
             {
@@ -2112,7 +2123,7 @@ int DRAW_Color_box1(IVC* src, IVC* dst, OVC* blobs, int labels, int video_width,
 }
 
 
-int vc_color_calculator(IVC* src, IVC* dst, int* nlabels, int* min_x, int* max_x, int* min_y, int* max_y)
+int vc_color_calculator(IVC* src, IVC* dst, int* nlabels, int* min_x, int* max_x, int* min_y, int* max_y, int scenario)
 {
     unsigned char* datasrc = (unsigned char*)src->data;
     unsigned char* datadst = (unsigned char*)dst->data;
@@ -2125,6 +2136,7 @@ int vc_color_calculator(IVC* src, IVC* dst, int* nlabels, int* min_x, int* max_x
     int aux_y;
 
     int array2[10] = { 0 }; // Array to store values for the second condition
+    int resis1 = 0; // Initialize resis1 to handle the second set of conditions
 
     // Verificação de erros
     if ((src->width <= 0) || (src->height <= 0) || (src->data == NULL)) return 0;
@@ -2139,25 +2151,126 @@ int vc_color_calculator(IVC* src, IVC* dst, int* nlabels, int* min_x, int* max_x
     {
         for (int x = *min_x; x < *max_x; x++)
         {
+            bool valuefound = false; // Reset valuefound for each pixel
             pos_dst = y * bytesperline_dst + x * channels_dst;
 
             aux_y = *min_y + (*max_y - *min_y) / 2;
-            bool valuefound = false;
-
             if (y == aux_y)
             {
                 int pixel_value = datadst[pos_dst];
-                // printf("%d\n", pixel_value);
-                if (pixel_value >= 249 && pixel_value <= 254)
+
+                if (scenario == 1)
                 {
-                    if (pixel_value == 254 && !valuefound)
+                    // First set of conditions
+                    if (pixel_value >= 249 && pixel_value <= 254)
                     {
-                        array2[0] = 5;
+                        if (pixel_value == 254 && !valuefound)
+                        {
+                            array2[0] = 5;
+                            valuefound = true;
+                        }
+                        else if (pixel_value == 253 && !valuefound)
+                        {
+                            array2[1] = 6;
+                            valuefound = true;
+                        }
+                        else if (pixel_value == 252 && !valuefound)
+                        {
+                            array2[2] = 100;
+                            valuefound = true;
+                        }
+                    }
+                }
+                else if (scenario == 2)
+                {
+                    // Second set of conditions
+                    if (pixel_value == 252 && !valuefound && resis1 == 0)
+                    {
+                        array2[0] = 2;
+                        valuefound = true;
+                        resis1 = 1;
+                    }
+                    else if (pixel_value == 252 && !valuefound && resis1 == 1)
+                    {
+                        array2[1] = 2;
                         valuefound = true;
                     }
-                    else if (pixel_value == 253 && !valuefound)
+                    else if (pixel_value == 249 && !valuefound)
                     {
-                        array2[1] = 6;
+                        array2[2] = 10;
+                        valuefound = true;
+                    }
+                }
+                else if (scenario == 3)
+                {
+                    // Second set of conditions
+                    if (pixel_value == 249 && !valuefound)
+                    {
+                        array2[0] = 1;
+                        valuefound = true;
+                    }
+                    else if (pixel_value == 250 && !valuefound)
+                    {
+                        array2[1] = 0;
+                        valuefound = true;
+                    }
+                    else if (pixel_value == 252 && !valuefound)
+                    {
+                        array2[2] = 100;
+                        valuefound = true;
+                    }
+                }
+                else if (scenario == 4)
+                {
+                    // Second set of conditions
+                    if (pixel_value == 252 && !valuefound && resis1 == 0)
+                    {
+                        array2[0] = 2;
+                        valuefound = true;
+                        resis1 = 1;
+                    }
+                    else if (pixel_value == 252 && !valuefound && resis1 == 1)
+                    {
+                        array2[1] = 2;
+                        valuefound = true;
+                        resis1 = 2;
+                    }
+                    else if (pixel_value == 252 && !valuefound && resis1 == 2)
+                    {
+                        array2[2] = 100;
+                        valuefound = true;
+                    }
+                }
+                else if (scenario == 5)
+                {
+                    // Second set of conditions
+                    if (pixel_value == 249 && !valuefound)
+                    {
+                        array2[0] = 1;
+                        valuefound = true;
+                    }
+                    else if (pixel_value == 250 && !valuefound)
+                    {
+                        array2[1] = 0;
+                        valuefound = true;
+                    }
+                    else if (pixel_value == 251 && !valuefound)
+                    {
+                        array2[2] = 1000;
+                        valuefound = true;
+                    }
+                }
+                else if (scenario == 6)
+                {
+                    // Second set of conditions
+                    if (pixel_value == 249 && !valuefound)
+                    {
+                        array2[0] = 1;
+                        valuefound = true;
+                    }
+                    else if (pixel_value == 250 && !valuefound)
+                    {
+                        array2[1] = 0;
                         valuefound = true;
                     }
                     else if (pixel_value == 252 && !valuefound)
@@ -2185,7 +2298,6 @@ int vc_color_calculator(IVC* src, IVC* dst, int* nlabels, int* min_x, int* max_x
 
     // Perform the calculations
     int result = concatenated_value * array2[2];
-    printf("%d\n", result);
 
     return result;
 }

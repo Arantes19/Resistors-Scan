@@ -75,7 +75,6 @@ int main(void) {
 
 	/* Cria uma janela para exibir o v�deo */
 	cv::namedWindow("VC - VIDEO", cv::WINDOW_AUTOSIZE);
-	cv::namedWindow("Segmented", cv::WINDOW_AUTOSIZE);
 
 	/* Inicia o timer */
 	vc_timer();
@@ -95,17 +94,17 @@ int main(void) {
 
 		/* Exemplo de inser��o texto na frame */
 		str = std::string("Resolucao: ").append(std::to_string(video.width)).append("x").append(std::to_string(video.height));
-		cv::putText(frame, str, cv::Point(20, 25), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
-		cv::putText(frame, str, cv::Point(20, 25), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
+		cv::putText(frame, str, cv::Point(20, 900), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
+		cv::putText(frame, str, cv::Point(20, 900), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
 		str = std::string("Total de Frames: ").append(std::to_string(video.ntotalframes));
-		cv::putText(frame, str, cv::Point(20, 50), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
-		cv::putText(frame, str, cv::Point(20, 50), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
+		cv::putText(frame, str, cv::Point(20, 925), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
+		cv::putText(frame, str, cv::Point(20, 925), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
 		str = std::string("Frame rate: ").append(std::to_string(video.fps));
-		cv::putText(frame, str, cv::Point(20, 75), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
-		cv::putText(frame, str, cv::Point(20, 75), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
+		cv::putText(frame, str, cv::Point(20, 950), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
+		cv::putText(frame, str, cv::Point(20, 950), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
 		str = std::string("N. da frame: ").append(std::to_string(video.nframe));
-		cv::putText(frame, str, cv::Point(20, 100), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
-		cv::putText(frame, str, cv::Point(20, 100), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
+		cv::putText(frame, str, cv::Point(20, 975), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
+		cv::putText(frame, str, cv::Point(20, 975), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
 
 		//Criação de imagens
 		IVC *image0 = vc_image_new(video.width, video.height, 3, 255);
@@ -142,8 +141,8 @@ int main(void) {
 
 		/*Foram realizados 3 desenhos de maneira a evitar a criação de um border entre 2 resistencias*/
 		count = DRAW_RESISTOR_BOX_1(image4, image0, blobs, nblobs, video.width, video.height, &min_x1, &max_x1, &min_y1, &max_y1);//Parte de cima da imagem, <=30% da Height 
-		DRAW_RESISTOR_BOX_2(image4, image0, blobs, nblobs, video.width, video.height, &min_x2, &max_x2, &min_y2, &max_y2);//Parte do meio da imagem, [30,70[% da Height
-		DRAW_RESISTOR_BOX_3(image4, image0, blobs, nblobs, video.width, video.height, &min_x3, &max_x3, &min_y3, &max_y3);//Parte de baixo da imagem, >=70% da Height
+		DRAW_RESISTOR_BOX_2(image4, image0, blobs, nblobs, video.width, video.height, &min_x2, &max_x2, &min_y2, &max_y2, count);//Parte do meio da imagem, [30,70[% da Height
+		DRAW_RESISTOR_BOX_3(image4, image0, blobs, nblobs, video.width, video.height, &min_x3, &max_x3, &min_y3, &max_y3, count);//Parte de baixo da imagem, >=70% da Height
 
 		IVC* image5 = vc_image_new(video.width, video.height, 1, 255);
 		vc_color_segmentation(image1, image5, max_y1, min_y1, max_x1, min_x1);
@@ -161,27 +160,19 @@ int main(void) {
 
 		IVC* image7 = vc_image_new(video.width, video.height, 1, 255);
 
-		resultado = vc_color_calculator(image5, image7, &ncolorblobs, &min_x1, &max_x1, &min_y1, &max_y1);
-
-		// Iterate over the blobs and store their information in the array
-		
-
-		// Convert the binary image to color for visualization
-		cv::Mat seg_frame(video.height, video.width, CV_8UC1, image5->data);
-		 
-		cv::Mat color_seg_frame;
-		cv::cvtColor(seg_frame, color_seg_frame, cv::COLOR_GRAY2BGR); 
-
+		resultado = vc_color_calculator(image5, image7, &ncolorblobs, &min_x1, &max_x1, &min_y1, &max_y1, count);
 
 		RGB_to_BGR(image0);  
 		memcpy(frame.data, image0->data, video.width * video.height * 3); 
 
-		str = std::string("Valor da resistencia: ").append(std::to_string(resultado));
-		cv::putText(frame, str, cv::Point(20, 125), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
-		cv::putText(frame, str, cv::Point(20, 125), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
-		str = std::string("Resistencias: ").append(std::to_string(count)); 
-		cv::putText(frame, str, cv::Point(20, 150), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
-		cv::putText(frame, str, cv::Point(20, 150), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
+		if (resultado != 0) {
+			std::string str = "Valor da Resistencia " + std::to_string(count) + " " + std::to_string(resultado) + " Ohms";
+			cv::putText(frame, str, cv::Point(20, 50), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
+			cv::putText(frame, str, cv::Point(20, 50), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
+		}
+		str = std::string("Numero de Resistencias: ").append(std::to_string(count)); 
+		cv::putText(frame, str, cv::Point(20, 75), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
+		cv::putText(frame, str, cv::Point(20, 75), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
 		
 
 		//Liberta a memoria das imagens IVC criadas
@@ -202,9 +193,6 @@ int main(void) {
 
 		// Exibe a frame original
 		cv::imshow("VC - VIDEO", frame);
-
-		// Exibe a frame segmentada
-		cv::imshow("Segmented", color_seg_frame);
 		
 		//int delay = 500 / video.fps;
 		/* Sai da aplicacao, se o utilizador premir a tecla 'q' */
@@ -216,7 +204,6 @@ int main(void) {
 
 	// Fecha as janelas
 	cv::destroyWindow("VC - VIDEO");
-	cv::destroyWindow("Segmented");
 
 	/* Fecha o ficheiro de v�deo */
 	capture.release();
