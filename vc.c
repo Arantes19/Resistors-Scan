@@ -1939,7 +1939,7 @@ int DRAW_RESISTOR_BOX_3(IVC* src, IVC* dst, OVC* blobs, int labels, int video_wi
     return 1;
 }
 
-int vc_color_segmentation(IVC* src, IVC* dst, int max_y, int min_y, int max_x, int min_x )
+int vc_color_segmentation(IVC* src, IVC* dst, int max_y, int min_y, int max_x, int min_x)
 {
     unsigned char* datasrc = (unsigned char*)src->data;
     int byterperline_src = src->width * src->channels;
@@ -1975,12 +1975,12 @@ int vc_color_segmentation(IVC* src, IVC* dst, int max_y, int min_y, int max_x, i
 
 
             // Check if the pixel falls within the specified HSV range (green || blue || red)
-            if ((h >= 67 && h <= 110) && (s >= 25 && s <= 50) && (v >= 37 && v <= 50) ||   //Verde
-                (h >= 115 && h <= 200 && s >= 10 && s <= 43 && v >= 35 && v <= 48) ||   //Azul
-                (h >= 6 && h <= 16 && s >= 50 && s <= 72 && v >= 60 && v <= 80) ||      //Vermelho
-                (h >= 10 && h <= 24 && s >= 70 && s <= 83 && v >= 80 && v <= 100) ||    //Laranja
-                (h >= 30 && h <= 100 && s >= 3 && s <= 35 && v >= 22 && v <= 27) ||     //Preto
-                (h >= 20 && h <= 38 && s >= 23 && s <= 51 && v >= 31 && v <= 50))      //Castanho
+            if (((h >= 52 && h <= 103 && s >= 30 && s <= 50 && v >= 38 && v <= 63) ||   //Verde
+                (h >= 127 && h <= 203 && s >= 11 && s <= 39 && v >= 35 && v <= 42) ||   //Azul
+                (h >= 0 && h <= 15 && s >= 40 && s <= 70 && v >= 60 && v <= 80) ||      //Vermelho
+                (h >= 5 && h <= 18 && s >= 62 && s <= 80 && v >= 77 && v <= 94) ||    //Laranja
+                (h >= 31 && h <= 80 && s >= 10 && s <= 36 && v >= 24 && v <= 42) ||     //Preto
+                (h >= 2 && h <= 36 && s >= 23 && s <= 57 && v >= 33 && v <= 50)))      //Castanho
             {
                 datadst[pos_dst] = 255; // Pixel is within range, mark as white 
             }
@@ -1988,8 +1988,6 @@ int vc_color_segmentation(IVC* src, IVC* dst, int max_y, int min_y, int max_x, i
             {
                 datadst[pos_dst] = 0; // Pixel is outside range, mark as black 
             }
-
-
 
         }
     }

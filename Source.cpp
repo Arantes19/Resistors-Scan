@@ -88,7 +88,7 @@ int main(void) {
 		/* Verifica se conseguiu ler a frame */
 		if (frame.empty()) break;
 
-		cv::GaussianBlur(frame, frame, cv::Size(5, 5), 0); 
+		cv::GaussianBlur(frame, frame, cv::Size(9, 9), 0); 
 
 		/* N�mero da frame a processar */
 		video.nframe = (int)capture.get(cv::CAP_PROP_POS_FRAMES);
@@ -124,9 +124,6 @@ int main(void) {
 		IVC *image3 = vc_image_new(video.width, video.height, 1, 255);
 		vc_binary_close(image2, image3, 3, 3);
 
-		
-
-
 
 
 		OVC *blobs = nullptr; 
@@ -153,9 +150,16 @@ int main(void) {
 		vc_color_segmentation(image1, image5, max_y2, min_y2, max_x2, min_x2);
 		vc_color_segmentation(image1, image5, max_y3, min_y3, max_x3, min_x3);
 
+		OVC* colorblobs = nullptr; 
+		int ncolorblobs = 0; 
+
+		IVC* image6 = vc_image_new(video.width, video.height, 1, 255);
+		colorblobs = vc_binary_blob_labelling(image5, image6, &ncolorblobs);
+		vc_binary_blob_info(image6, colorblobs, ncolorblobs);
+
 
 		// Convert the binary image to color for visualization
-		cv::Mat seg_frame(video.height, video.width, CV_8UC1, image5->data); 
+		cv::Mat seg_frame(video.height, video.width, CV_8UC1, image5->data);
 		 
 		cv::Mat color_seg_frame;
 		cv::cvtColor(seg_frame, color_seg_frame, cv::COLOR_GRAY2BGR); 
@@ -170,7 +174,7 @@ int main(void) {
 		str = std::string("Resistencias: ").append(std::to_string(count)); 
 		cv::putText(frame, str, cv::Point(20, 150), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
 		cv::putText(frame, str, cv::Point(20, 150), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
-
+		
 
 		//Liberta a memoria das imagens IVC criadas
 		vc_image_free(image0);    
@@ -179,9 +183,7 @@ int main(void) {
 		vc_image_free(image3);
 		vc_image_free(image4);
 		vc_image_free(image5);
-		//vc_image_free(image6);
-
-
+		vc_image_free(image6);
 
 
 		//vc_image_free(resistor_labeled); 
