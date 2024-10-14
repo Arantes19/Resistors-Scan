@@ -1,4 +1,4 @@
-# ResistanceScan
+# Resistors-Scan
 This work aims to develop an application that, by applying a set of algorithms, allows the counting and identification
 of electrical resistances present in a video. This application should be able to segment the different resistances 
 (and only the resistances), identifying their value (expressing it in ohms) and relative location (which region of 
